@@ -1,0 +1,11 @@
+Debug/
+Release/
+ipch/
+*.sdf
+*.filters
+*.user
+*.png
+*.PNG
+*.swp
+*.suo
+*.opensdf
