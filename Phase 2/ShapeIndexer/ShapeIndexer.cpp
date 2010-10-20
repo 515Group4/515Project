@@ -11,7 +11,10 @@ int main(int argc, char* argv[])
 {
     string s;
 
-    Magick::InitializeMagick("E:\\Programs\\Dev\\ImageMagick\\");
+	// C:\\Data\\Programs\\ImageMagick\\
+	// E:\\Programs\\Dev\\ImageMagick\\
+
+    Magick::InitializeMagick("C:\\Data\\Programs\\ImageMagick\\");
 
     if (argc > 1)
     {
@@ -23,7 +26,7 @@ int main(int argc, char* argv[])
     }
 
     Image img(s.c_str());
-    img.quantizeColorSpace(YUVColorspace);
+    //img.quantizeColorSpace(YUVColorspace);
 	img.segment(1.0, 1.5); // segments the image with the parameter values 1.0 and 1.5
 	img.modifyImage(); // ensures that no other references to this image exist
 
@@ -37,6 +40,52 @@ int main(int argc, char* argv[])
 	return 0;
 }
 
+void IterateThroughEachShape(const PixelPacket *px, int cols, int rows)
+{
+	int x = 0, y = 0, shapecount=0;
+	vector<MyPoint> mystack; // a stack to keep track of pixels in the same segment
+	bool *pixelvisited = new bool[cols*rows]; // creates an array to keep track of which pixels have been visited
+	bool *shapelayer = new bool[cols*rows]; // a bool array that marks the positions corresponding to the current shape
+
+	memset(pixelvisited, 0, cols*rows*sizeof(bool));
+
+	while(FindUnvisitedPixel(px, pixelvisited, cols, rows, &x, &y))
+	{
+		shapecount++;
+		MyPoint pt1 = GetPoint(x, y);
+		mystack.push_back(pt1); // push the starting point into the stack
+		pixelvisited[y*cols + x] = true; // mark the starting pixel as visited
+		Color mycolor = GetPxColor(px, cols, x, y);
+
+		while(!mystack.empty())
+		{
+			MyPoint pt = mystack.back(); mystack.pop_back(); // pop out an element from the stack
+			int x = pt.x;
+			int y = pt.y;
+		
+			VisitPixelAndMarkShape(x,   y-1, px, pixelvisited, shapelayer, cols, rows, mystack, mycolor); // north
+			VisitPixelAndMarkShape(x+1, y-1, px, pixelvisited, shapelayer, cols, rows, mystack, mycolor); // north-east
+			VisitPixelAndMarkShape(x+1, y,   px, pixelvisited, shapelayer, cols, rows, mystack, mycolor); // east
+			VisitPixelAndMarkShape(x+1, y+1, px, pixelvisited, shapelayer, cols, rows, mystack, mycolor); // south-east
+			VisitPixelAndMarkShape(x,   y+1, px, pixelvisited, shapelayer, cols, rows, mystack, mycolor); // south
+			VisitPixelAndMarkShape(x-1, y+1, px, pixelvisited, shapelayer, cols, rows, mystack, mycolor); // south-west
+			VisitPixelAndMarkShape(x-1, y,   px, pixelvisited, shapelayer, cols, rows, mystack, mycolor); // west
+			VisitPixelAndMarkShape(x-1, y-1, px, pixelvisited, shapelayer, cols, rows, mystack, mycolor); // north-west
+		}
+
+		// at this point, the shape is ready.
+		
+		
+	}
+
+	delete[] pixelvisited;
+	delete[] shapelayer;
+}
+
+int FindShapeLibraryDescriptor(const PixelPacket *pc, const bool *shapelayer, int rows, int cols, int x, int y)
+{
+	int shapewidth, shapeheight;
+}
 
 bool FindUnvisitedPixel(const PixelPacket *pc, const bool *pixelvisited, int cols, int rows, int *px, int *py)
 {
@@ -76,6 +125,17 @@ MyPoint GetPoint(int x, int y)
 	pt.x = x;
 	pt.y = y;
 	return pt;
+}
+
+void VisitPixelAndMarkShape(int x, int y, const PixelPacket *px, bool *pixelvisited, bool *shapelayer, int cols, int rows, vector<MyPoint>& mystack, const Color& mycolor)
+{
+	// if the pixel is within bounds, hasn't been visited yet, and is the same color as me
+	if (IsInBounds(x, y, cols, rows) && (!pixelvisited[y*cols+x]) && mycolor == GetPxColor(px, cols, x, y))
+	{
+		mystack.push_back(GetPoint(x, y)); // add to the stack
+		pixelvisited[y*cols + x] = true; // mark as visited
+		shapelayer[y*cols + x] = true;
+	}
 }
 
 void VisitPixel(int x, int y, const PixelPacket *px, bool *pixelvisited, int cols, int rows, vector<MyPoint>& mystack, const Color& mycolor)
