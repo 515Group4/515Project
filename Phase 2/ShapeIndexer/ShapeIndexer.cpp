@@ -7,6 +7,9 @@ using namespace std;
 
 bool FindUnvisitedPixel(const PixelPacket *pc, const bool *pixelvisited, int cols, int rows, int *px, int *py);
 
+static int foo = 0;
+static Image *shapeLibrary1 = NULL;
+
 int main(int argc, char* argv[])
 {
     string s;
@@ -37,6 +40,8 @@ int main(int argc, char* argv[])
 	int numSegments = CountSegments(pc, cols, rows); // counts the number of segments
 	cout << "Number of segments is: " << numSegments << "\r\n"; // prints to the console
 
+	IterateThroughEachShape(pc, cols, rows);
+
 	return 0;
 }
 
@@ -48,12 +53,16 @@ void IterateThroughEachShape(const PixelPacket *px, int cols, int rows)
 	bool *shapelayer = new bool[cols*rows]; // a bool array that marks the positions corresponding to the current shape
 
 	memset(pixelvisited, 0, cols*rows*sizeof(bool));
+	
 
 	while(FindUnvisitedPixel(px, pixelvisited, cols, rows, &x, &y))
 	{
 		shapecount++;
 		MyPoint pt1 = GetPoint(x, y);
 		mystack.push_back(pt1); // push the starting point into the stack
+
+		memset(shapelayer, 0, cols*rows*sizeof(bool));
+
 		pixelvisited[y*cols + x] = true; // mark the starting pixel as visited
 		Color mycolor = GetPxColor(px, cols, x, y);
 
@@ -74,7 +83,7 @@ void IterateThroughEachShape(const PixelPacket *px, int cols, int rows)
 		}
 
 		// at this point, the shape is ready.
-		
+		FindShapeLibraryDescriptor(px, shapelayer, rows, cols, 0, 0);
 		
 	}
 
@@ -84,7 +93,121 @@ void IterateThroughEachShape(const PixelPacket *px, int cols, int rows)
 
 int FindShapeLibraryDescriptor(const PixelPacket *pc, const bool *shapelayer, int rows, int cols, int x, int y)
 {
-	int shapewidth, shapeheight;
+	// step 1: find the bounds of the shape
+	int shapeminx = INT_MAX, shapeminy = INT_MAX, shapemaxx = INT_MIN, shapemaxy = INT_MIN; 
+	for (int y=0; y<rows; y++)
+	{
+		for (int x=0; x<cols; x++)
+		{
+			if (*(shapelayer + y*cols + x))
+			{
+				shapeminx = min(shapeminx, x);
+				shapemaxx = max(shapemaxx, x);
+				shapeminy = min(shapeminy, y);
+				shapemaxy = max(shapemaxy, y);
+			}
+		}
+	}
+
+	// step 2: create an image and blt it to that
+	int shpwidth = shapemaxx - shapeminx;
+	int shpheight = shapemaxy - shapeminy;
+	Image shp(Geometry(shpwidth, shpheight), ColorMono(false));
+	shp.modifyImage();
+	PixelPacket *shpPix = shp.getPixels(0, 0, shpwidth, shpheight);
+	for (int y=0; y<shpheight; y++)
+	{
+		for (int x=0; x<shpwidth; x++)
+		{
+			if ((*(shapelayer + (y+shapeminy)*cols + (x+shapeminx))))
+			{
+				*(shpPix +y*shpwidth + x)= ColorMono(true);
+			}
+		}
+	}
+	
+	// step 3: resize the image to standard size
+	shp.transform(Geometry(32, 32));
+
+	// step 2a: debug ... write it to a file so we can see how it looks
+	char szFilename[200];
+	sprintf(szFilename, "MyShape_%d.png", foo);
+	foo++;
+	shp.write(szFilename);
+
+
+	// step 4: go through the shape library, trying to find max overlap
+	if (shapeLibrary1 == NULL)
+	{
+		shapeLibrary1 = new Image("shapeLibrary1.png");
+	}
+	const PixelPacket *shplib = shapeLibrary1->getConstPixels(0, 0, shapeLibrary1->columns(), shapeLibrary1->rows());
+	const PixelPacket *shppx = shp.getConstPixels(0, 0, shp.columns(), shp.rows());
+
+	//const PixelPacket *s1 = shplib;
+	//for (int y=0;y<256;y++)
+	//{
+	//	for (int x=0;x<256;x++)
+	//	{
+	//		if ( s1->opacity > 0)
+	//		{
+	//			printf("ha");
+	//			s1++;
+	//		}
+	//	}
+	//}
+
+	int libmaxX = 0;
+	int libmaxY = 0;
+	int libcounterMax = 0;
+
+	for (int liby=0; liby<8; liby++)
+	{
+		for (int libx=0; libx<8; libx++)
+		{
+			int overlap = FindOverlap(shplib, libx, liby, shppx, shp.columns(), shp.rows());
+
+			if (overlap > libcounterMax)
+			{
+				libmaxX = libx;
+				libmaxY = liby;
+				libcounterMax = overlap;
+			}
+
+			printf("%d\t", overlap);
+		}
+
+		printf("\n");
+	}
+	
+	printf("the best match was: %d, %d\n", libmaxX, libmaxY);
+
+	return 1;
+}
+
+int FindOverlap(const PixelPacket* shapeLibrary, int libx, int liby, const PixelPacket* shape, int shpCols, int shpRows)
+{
+	int startx = (32 - shpCols)/2;
+	int starty = (32 - shpRows)/2;
+	int counter = 0;
+
+	for (int y=0; y<shpRows; y++)
+	{
+		for (int x=0; x<shpCols; x++)
+		{
+			if (((shapeLibrary + (liby*32 + starty + y)*256 + (libx*32 + startx + x))->opacity > 0) // shape library
+				^ ((shape +  y*shpCols + x)->red > 0)) // XOR with shape
+			{
+				counter--;
+			}
+			else
+			{
+				counter++;
+			}
+		}
+	}
+
+	return counter;
 }
 
 bool FindUnvisitedPixel(const PixelPacket *pc, const bool *pixelvisited, int cols, int rows, int *px, int *py)
