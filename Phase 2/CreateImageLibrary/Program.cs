@@ -98,6 +98,35 @@ namespace CreateImageLibrary
                 g.FillPolygon(b, pts);
             }
             
+            // row 7 - rhombuses
+            cury += 32;
+            for (int i = 0; i < numShapesPerRow; i++)
+            {
+                int wd = ShapeWidth - (int)((1 - i / (double)numShapesPerRow) * ShapeWidth + i / (double)numShapesPerRow * 1);
+                int basey = cury + (ShapeHeight) / 2;
+                Point[] pts = new Point[4];
+                pts[0] = new Point(i * ShapeWidth + wd / 2, basey);
+                pts[1] = new Point(i * ShapeWidth + ShapeWidth / 2, cury);
+                pts[2] = new Point((i + 1) * ShapeWidth - wd / 2, basey);
+                pts[3] = new Point(i * ShapeWidth + ShapeWidth / 2, cury + ShapeHeight);
+                g.FillPolygon(b, pts);
+            }
+
+            // row 8 - lines
+            cury += 32;
+            for (int i = 0; i < numShapesPerRow; i++)
+            {
+                Point[] cornersAndMidpoints = new Point[8];
+                cornersAndMidpoints[0] = new Point(i * ShapeWidth, cury);
+                cornersAndMidpoints[1] = new Point(i * ShapeWidth, cury + ShapeHeight/2);
+                cornersAndMidpoints[2] = new Point(i * ShapeWidth, cury + ShapeHeight);
+                cornersAndMidpoints[3] = new Point(i * ShapeWidth + ShapeWidth/2, cury + ShapeHeight);
+                cornersAndMidpoints[4] = new Point(i * ShapeWidth + ShapeWidth, cury + ShapeHeight);
+                cornersAndMidpoints[5] = new Point(i * ShapeWidth + ShapeWidth, cury + ShapeHeight / 2);
+                cornersAndMidpoints[6] = new Point(i * ShapeWidth + ShapeWidth, cury);
+                cornersAndMidpoints[7] = new Point(i * ShapeWidth + ShapeWidth / 2, cury);
+                g.FillPolygon(b, new Point[] { cornersAndMidpoints[i%8], cornersAndMidpoints[(2+i)%8], cornersAndMidpoints[(4+i)%8]});
+            }
 
             //Pen p = Pens.Red;
             //for (int i = 0; i < numShapesPerRow; i++)

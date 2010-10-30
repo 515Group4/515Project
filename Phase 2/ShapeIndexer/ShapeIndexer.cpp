@@ -128,13 +128,19 @@ int FindShapeLibraryDescriptor(const PixelPacket *pc, const bool *shapelayer, in
 	
 	// step 3: resize the image to standard size
 	shp.transform(Geometry(32, 32));
+	// bug ImageMagick ignores the gravity parameter
+	//shp.extent(Geometry(32, 32), ColorMono(false), GravityType::SouthGravity);
+
+	Image shp2(Geometry(32, 32), ColorMono(false));
+	shp2.composite(shp, GravityType::CenterGravity, CompositeOperator::OverCompositeOp);
 
 	// step 2a: debug ... write it to a file so we can see how it looks
 	char szFilename[200];
 	sprintf(szFilename, "MyShape_%d.png", foo);
 	foo++;
-	shp.write(szFilename);
+	shp2.write(szFilename);
 
+	//shp.display();
 
 	// step 4: go through the shape library, trying to find max overlap
 	if (shapeLibrary1 == NULL)
@@ -142,7 +148,7 @@ int FindShapeLibraryDescriptor(const PixelPacket *pc, const bool *shapelayer, in
 		shapeLibrary1 = new Image("shapeLibrary1.png");
 	}
 	const PixelPacket *shplib = shapeLibrary1->getConstPixels(0, 0, shapeLibrary1->columns(), shapeLibrary1->rows());
-	const PixelPacket *shppx = shp.getConstPixels(0, 0, shp.columns(), shp.rows());
+	const PixelPacket *shppx = shp2.getConstPixels(0, 0, shp2.columns(), shp2.rows());
 
 	//const PixelPacket *s1 = shplib;
 	//for (int y=0;y<256;y++)
@@ -165,7 +171,7 @@ int FindShapeLibraryDescriptor(const PixelPacket *pc, const bool *shapelayer, in
 	{
 		for (int libx=0; libx<8; libx++)
 		{
-			int overlap = FindOverlap(shplib, libx, liby, shppx, shp.columns(), shp.rows());
+			int overlap = FindOverlap(shplib, libx, liby, shppx, shp2.columns(), shp2.rows());
 
 			if (overlap > libcounterMax)
 			{
@@ -174,10 +180,10 @@ int FindShapeLibraryDescriptor(const PixelPacket *pc, const bool *shapelayer, in
 				libcounterMax = overlap;
 			}
 
-			printf("%d\t", overlap);
+			//printf("%d\t", overlap);
 		}
 
-		printf("\n");
+		//printf("\n");
 	}
 	
 	printf("the best match was: %d, %d\n", libmaxX, libmaxY);
@@ -191,21 +197,35 @@ int FindOverlap(const PixelPacket* shapeLibrary, int libx, int liby, const Pixel
 	int starty = (32 - shpRows)/2;
 	int counter = 0;
 
+	//printf("libx: %d, liby: %d\n", libx, liby);
+
+	//Image tim(Geometry(32, 32), ColorMono(true));
+	//tim.modifyImage();
+	//PixelPacket *ptix = tim.getPixels(0, 0, 32, 32);
+
 	for (int y=0; y<shpRows; y++)
 	{
 		for (int x=0; x<shpCols; x++)
 		{
-			if (((shapeLibrary + (liby*32 + starty + y)*256 + (libx*32 + startx + x))->opacity > 0) // shape library
-				^ ((shape +  y*shpCols + x)->red > 0)) // XOR with shape
+			if (((shapeLibrary + (liby*32 + starty + y)*256 + (libx*32 + startx + x))->opacity <= 0)) // shape library
 			{
-				counter--;
-			}
-			else
-			{
-				counter++;
+				if((shape +  y*shpCols + x)->red > 0) // XOR with shape
+				{
+					counter++;
+					//*(ptix + y*32 + x) = ColorMono(false);
+				}
+				else
+				{
+					counter--;
+					//*(ptix + y*32 + x) = ColorMono(true);
+				}
 			}
 		}
 	}
+
+	//char szShapeMatch[200];
+	//sprintf(szShapeMatch, "Shape(%d)_Lib(%d, %d).png", foo, libx, liby);
+	//tim.write(szShapeMatch);
 
 	return counter;
 }
