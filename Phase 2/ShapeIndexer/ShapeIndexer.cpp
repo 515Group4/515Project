@@ -9,6 +9,9 @@ bool FindUnvisitedPixel(const PixelPacket *pc, const bool *pixelvisited, int col
 
 static int foo = 0;
 static Image *shapeLibrary1 = NULL;
+static Image *shapeLibrary2 = NULL;
+static Image *shapeLibrary3 = NULL;
+static Image *shapeLibrary4 = NULL;
 
 int main(int argc, char* argv[])
 {
@@ -140,29 +143,31 @@ int FindShapeLibraryDescriptor(const PixelPacket *pc, const bool *shapelayer, in
 	foo++;
 	shp2.write(szFilename);
 
-	//shp.display();
-
 	// step 4: go through the shape library, trying to find max overlap
-	if (shapeLibrary1 == NULL)
-	{
-		shapeLibrary1 = new Image("shapeLibrary1.png");
-	}
-	const PixelPacket *shplib = shapeLibrary1->getConstPixels(0, 0, shapeLibrary1->columns(), shapeLibrary1->rows());
+	if (shapeLibrary1 == NULL){	shapeLibrary1 = new Image("shapeLibrary1.png");	}
+	if (shapeLibrary2 == NULL){	shapeLibrary2 = new Image("shapeLibrary2.png");	}
+	if (shapeLibrary3 == NULL){	shapeLibrary3 = new Image("shapeLibrary3.png");	}
+	if (shapeLibrary4 == NULL){	shapeLibrary4 = new Image("shapeLibrary4.png");	}
+
+	const PixelPacket *shplib1 = shapeLibrary1->getConstPixels(0, 0, shapeLibrary1->columns(), shapeLibrary1->rows());
+	const PixelPacket *shplib2 = shapeLibrary2->getConstPixels(0, 0, shapeLibrary2->columns(), shapeLibrary2->rows());
+	const PixelPacket *shplib3 = shapeLibrary3->getConstPixels(0, 0, shapeLibrary3->columns(), shapeLibrary3->rows());
+	const PixelPacket *shplib4 = shapeLibrary4->getConstPixels(0, 0, shapeLibrary4->columns(), shapeLibrary4->rows());
+
 	const PixelPacket *shppx = shp2.getConstPixels(0, 0, shp2.columns(), shp2.rows());
 
-	//const PixelPacket *s1 = shplib;
-	//for (int y=0;y<256;y++)
-	//{
-	//	for (int x=0;x<256;x++)
-	//	{
-	//		if ( s1->opacity > 0)
-	//		{
-	//			printf("ha");
-	//			s1++;
-	//		}
-	//	}
-	//}
+	int byte1 = GetShapeLibraryByte(shplib1, shppx, shp2.columns(), shp2.rows());
+	int byte2 = GetShapeLibraryByte(shplib2, shppx, shp2.columns(), shp2.rows());
+	int byte3 = GetShapeLibraryByte(shplib3, shppx, shp2.columns(), shp2.rows());
+	int byte4 = GetShapeLibraryByte(shplib4, shppx, shp2.columns(), shp2.rows());
+	
+	printf("the best match was: (%d, %d, %d, %d)\n", byte1, byte2, byte3, byte4);
 
+	return 1;
+}
+
+int GetShapeLibraryByte(const PixelPacket* shapeLibrary, const PixelPacket* shape, int shapeCols, int shapeRows)
+{
 	int libmaxX = 0;
 	int libmaxY = 0;
 	int libcounterMax = 0;
@@ -171,7 +176,7 @@ int FindShapeLibraryDescriptor(const PixelPacket *pc, const bool *shapelayer, in
 	{
 		for (int libx=0; libx<8; libx++)
 		{
-			int overlap = FindOverlap(shplib, libx, liby, shppx, shp2.columns(), shp2.rows());
+			int overlap = FindOverlap(shapeLibrary, libx, liby, shape, shapeCols, shapeRows);
 
 			if (overlap > libcounterMax)
 			{
@@ -179,16 +184,11 @@ int FindShapeLibraryDescriptor(const PixelPacket *pc, const bool *shapelayer, in
 				libmaxY = liby;
 				libcounterMax = overlap;
 			}
-
-			//printf("%d\t", overlap);
 		}
-
-		//printf("\n");
 	}
-	
-	printf("the best match was: %d, %d\n", libmaxX, libmaxY);
 
-	return 1;
+	printf("inside byte: %d, %d\n", libmaxX, libmaxY);
+	return (libmaxX << 4) | libmaxY;
 }
 
 int FindOverlap(const PixelPacket* shapeLibrary, int libx, int liby, const PixelPacket* shape, int shpCols, int shpRows)
@@ -209,7 +209,7 @@ int FindOverlap(const PixelPacket* shapeLibrary, int libx, int liby, const Pixel
 		{
 			if (((shapeLibrary + (liby*32 + starty + y)*256 + (libx*32 + startx + x))->opacity <= 0)) // shape library
 			{
-				if((shape +  y*shpCols + x)->red > 0) // XOR with shape
+				if((shape + y*shpCols + x)->red > 0) // XOR with shape
 				{
 					counter++;
 					//*(ptix + y*32 + x) = ColorMono(false);
@@ -220,6 +220,11 @@ int FindOverlap(const PixelPacket* shapeLibrary, int libx, int liby, const Pixel
 					//*(ptix + y*32 + x) = ColorMono(true);
 				}
 			}
+			else if((shape +  y*shpCols + x)->red > 0) // negate if shape isnt but shape is
+			{
+				counter--;
+			}
+
 		}
 	}
 

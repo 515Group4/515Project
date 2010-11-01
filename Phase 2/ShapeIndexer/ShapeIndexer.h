@@ -14,3 +14,4 @@ void VisitPixelAndMarkShape(int x, int y, const PixelPacket *px, bool *pixelvisi
 void IterateThroughEachShape(const PixelPacket *pc, int cols, int rows);
 int FindShapeLibraryDescriptor(const PixelPacket *pc, const bool *shapelayer, int rows, int cols, int x, int y);
 int FindOverlap(const PixelPacket* shapeLibrary, int libx, int liby, const PixelPacket* shape, int shpCols, int shpRows);
+int GetShapeLibraryByte(const PixelPacket* shapeLibrary, const PixelPacket* shape, int shapeCols, int shapeRows);
