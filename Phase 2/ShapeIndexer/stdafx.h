@@ -13,6 +13,7 @@
 #include <iostream>
 #include <tchar.h>
 #include <vector>
+#include <stack>
 #include <algorithm>
 #include <windows.h>
 #include <fstream>

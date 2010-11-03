@@ -4,6 +4,7 @@ using namespace Magick;
 using namespace std;
 
 #include "ShapeIndexer.h"
+#include "Eccentricity.h"
 
 bool FindUnvisitedPixel(const PixelPacket *pc, const bool *pixelvisited, int cols, int rows, int *px, int *py);
 
@@ -34,24 +35,7 @@ int main(int argc, char* argv[])
         s = "button.gif";
     }
 
-	//IndexDirectory("C:\\Data\\Code\\gitrepo\\GroupGit\\515Project\\Phase 2\\ShapeIndexer\\*.png", "");
-	IndexDirectory("C:\\Data\\Datasets\\reducedtestimages\\", "");
-	
-
- //   Image img(s.c_str());
- //   //img.quantizeColorSpace(YUVColorspace);
-	//img.segment(1.0, 1.5); // segments the image with the parameter values 1.0 and 1.5
-	//img.modifyImage(); // ensures that no other references to this image exist
-
-	//int cols = img.columns();
-	//int rows = img.rows();
-	//const PixelPacket *pc = img.getConstPixels(0, 0, cols, rows); // gets a pointer to the pixels of the image
-
-	//int numSegments = CountSegments(pc, cols, rows); // counts the number of segments
-	//cout << "Number of segments is: " << numSegments << "\r\n"; // prints to the console
-
-	//IterateThroughEachShape(pc, cols, rows);
-
+	IndexDirectory("C:\\Data\\Datasets\\reducedtestimages\\", "C:\\Data\\Datasets\\reduced_test_images_index.txt");
 	return 0;
 }
 
@@ -59,7 +43,7 @@ void IndexDirectory(const char *foldername, const char *indexFile)
 {
 	WIN32_FIND_DATAA findData;
 	ofstream indexWriter(indexFile);
-	cout << "Indexing directory: " << foldername;
+	cout << "Indexing directory: " << foldername << endl;
 
 	char findPattern[MAX_PATH];
 	sprintf(findPattern, "%s*", foldername);
@@ -70,10 +54,8 @@ void IndexDirectory(const char *foldername, const char *indexFile)
 		do{
 			if (!(findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
 			{
-				cout << "Now indexing: " << findData.cFileName << "\n";
-				char fullFilePath[MAX_PATH];
-				sprintf(fullFilePath, "%s%s", foldername, findData.cFileName);
-				IndexImage(fullFilePath, indexWriter);
+				cout << endl << "Now indexing: " << findData.cFileName << "\n";
+				IndexImage(foldername, findData.cFileName, indexWriter);
 			}
 		} while(FindNextFileA(hFind, &findData));
 
@@ -84,19 +66,21 @@ void IndexDirectory(const char *foldername, const char *indexFile)
 	indexWriter.close();
 }
 
-void IndexImage(const char* filename, ofstream& indexFile)
+void IndexImage(const char* foldername, const char* filename, ofstream& indexFile)
 {
-	Image img(filename);
+	char fullFilePath[MAX_PATH];
+	sprintf(fullFilePath, "%s%s", foldername, filename);
+	Image img(fullFilePath);
 	//img.colorSpace(ColorspaceType::YUVColorspace);
 	img.segment(1.0, 1.5);
 	img.write("segmented-image.png");
 	int cols = img.columns();
 	int rows = img.rows();
 	const PixelPacket *pc = img.getConstPixels(0, 0, cols, rows);
-	IterateThroughEachShape(pc, cols, rows);
+	IterateThroughEachShape(pc, cols, rows, indexFile, filename);
 }
 
-void IterateThroughEachShape(const PixelPacket *px, int cols, int rows)
+void IterateThroughEachShape(const PixelPacket *px, int cols, int rows, ofstream& indexFile, const char* filename)
 {
 	int x = 0, y = 0, shapecount=0;
 	vector<MyPoint> mystack; // a stack to keep track of pixels in the same segment
@@ -183,12 +167,107 @@ void IterateThroughEachShape(const PixelPacket *px, int cols, int rows)
 		}
 
 		// at this point, the shape is ready.
+		unsigned int descriptor1 = FindColorDescriptor(px, shapelayer, importantPoints[i].size, rows, cols, x, y);
+		unsigned int descriptor2 = (unsigned int)(FindEccentricityDescriptor(px, shapelayer, importantPoints[i].size, rows, cols, x, y) * 65536); // arbit
+		unsigned int descriptor3 = (unsigned int)FindCentralityDescriptor(px, shapelayer, importantPoints[i].size, rows, cols, x, y);
+		unsigned int descriptor4 = FindMomentDescriptor(px, shapelayer, importantPoints[i].size, rows, cols, x, y);
 		unsigned int descriptor5 = FindShapeLibraryDescriptor(px, shapelayer, rows, cols, x, y);
+
+		cout << "------------------------" << endl;
+		cout << "Color Descr:   \t" << descriptor1 << endl;
+		cout << "Eccentricity:  \t" << descriptor2 << endl;
+		cout << "Centrality:    \t" << descriptor3 << endl;
+		cout << "Moment(2, 1):  \t" << descriptor4 << endl;
+		cout << "Shape Library: \t" << descriptor5 << endl;
+
+		indexFile << filename << "," << descriptor1 << "," << descriptor2 << "," << descriptor3 << "," << descriptor4 << "," << descriptor5 << endl; 
 	}
+
+
 
 	delete[] pixelvisited;
 	delete[] shapelayer;
 }
+unsigned int FindColorDescriptor(const PixelPacket *pc, const bool *shapelayer, int size, int rows, int cols, int x, int y)
+{
+	double redComponent = 0.0;
+	double greenComponent = 0.0;
+	double blueComponent = 0.0;
+
+	ColorRGB pixelColorOrig;
+
+	for(int row = 0; row < rows; row++)
+	{
+      	for(int col=0; col < cols; col++)
+		{
+			if(shapelayer[row*cols + col])
+			{
+				// Here, insert the code to calculate the average of color pixels in the original image
+				pixelColorOrig = pc[row*cols + col];
+				redComponent += pixelColorOrig.red();
+				greenComponent += pixelColorOrig.green();
+				blueComponent += pixelColorOrig.blue();
+			}
+		}
+	}
+	redComponent   = redComponent/size;
+	greenComponent = greenComponent/size;
+	blueComponent  = blueComponent/size;
+
+	int redn = (int)(redComponent*(1<<16));
+	int greenn = (int)(greenComponent*(1<<8));
+	int bluen = (int)(blueComponent*(1<<8));
+	
+	return color_riffle(redn, greenn, bluen);
+}
+
+static unsigned int color_riffle(int red, int green, int blue)
+{
+	int descriptor = 0;
+
+	descriptor |= (red   & 0x8000) ? 0x80000000 : 0;
+	descriptor |= (red   & 0x4000) ? 0x40000000 : 0;
+	descriptor |= (green & 0x80)   ? 0x20000000 : 0;
+	descriptor |= (blue  & 0x80)   ? 0x10000000 : 0;
+	
+	descriptor |= (red   & 0x2000) ? 0x08000000 : 0;
+	descriptor |= (red   & 0x1000) ? 0x04000000 : 0;
+	descriptor |= (green & 0x40)   ? 0x02000000 : 0;
+	descriptor |= (blue  & 0x40)   ? 0x01000000 : 0;
+	
+	descriptor |= (red   & 0x0800) ? 0x00800000 : 0;
+	descriptor |= (red   & 0x0400) ? 0x00400000 : 0;
+	descriptor |= (green & 0x20)   ? 0x00200000 : 0;
+	descriptor |= (blue  & 0x20)   ? 0x00100000 : 0;
+	
+	descriptor |= (red   & 0x0200) ? 0x00080000 : 0;
+	descriptor |= (red   & 0x0100) ? 0x00040000 : 0;
+	descriptor |= (green & 0x10)   ? 0x00020000 : 0;
+	descriptor |= (blue  & 0x10)   ? 0x00010000 : 0;
+	
+	descriptor |= (red   & 0x0080) ? 0x00008000 : 0;
+	descriptor |= (red   & 0x0040) ? 0x00004000 : 0;
+	descriptor |= (green & 0x08)   ? 0x00002000 : 0;
+	descriptor |= (blue  & 0x08)   ? 0x00001000 : 0;
+	
+	descriptor |= (red   & 0x0020) ? 0x00000800 : 0;
+	descriptor |= (red   & 0x0010) ? 0x00000400 : 0;
+	descriptor |= (green & 0x04)   ? 0x00000200 : 0;
+	descriptor |= (blue  & 0x04)   ? 0x00000100 : 0;
+	
+	descriptor |= (red   & 0x0008) ? 0x00000080 : 0;
+	descriptor |= (red   & 0x0004) ? 0x00000040 : 0;
+	descriptor |= (green & 0x02)   ? 0x00000020 : 0;
+	descriptor |= (blue  & 0x02)   ? 0x00000010 : 0;
+	
+	descriptor |= (red   & 0x0002) ? 0x00000008 : 0;
+	descriptor |= (red   & 0x0001) ? 0x00000004 : 0;
+	descriptor |= (green & 0x01)   ? 0x00000002 : 0;
+	descriptor |= (blue  & 0x01)   ? 0x00000001 : 0;
+
+	return descriptor;
+}
+
 
 unsigned int FindShapeLibraryDescriptor(const PixelPacket *pc, const bool *shapelayer, int rows, int cols, int xx, int yy)
 {
@@ -237,7 +316,7 @@ unsigned int FindShapeLibraryDescriptor(const PixelPacket *pc, const bool *shape
 	char szFilename[200];
 	sprintf(szFilename, "MyShape_%d.png", foo);
 	foo++;
-	shp2.write(szFilename);
+	//shp2.write(szFilename);
 
 	// step 4: go through the shape library, trying to find max overlap
 	if (shapeLibrary1 == NULL){	shapeLibrary1 = new Image("shapeLibrary1.png");	}
@@ -257,7 +336,7 @@ unsigned int FindShapeLibraryDescriptor(const PixelPacket *pc, const bool *shape
 	int byte3 = GetShapeLibraryByte(shplib3, shppx, shp2.columns(), shp2.rows());
 	int byte4 = GetShapeLibraryByte(shplib4, shppx, shp2.columns(), shp2.rows());
 	
-	printf("the best match was: (%d, %d, %d, %d)\n", byte1, byte2, byte3, byte4);
+	//printf("the best match was: (%d, %d, %d, %d)\n", byte1, byte2, byte3, byte4);
 
 	return riffle(byte1, byte2, byte3, byte4);
 }
