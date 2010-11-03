@@ -13,6 +13,9 @@ static Image *shapeLibrary2 = NULL;
 static Image *shapeLibrary3 = NULL;
 static Image *shapeLibrary4 = NULL;
 
+static const int NumImportantShapes = 10;
+
+
 int main(int argc, char* argv[])
 {
     string s;
@@ -31,21 +34,66 @@ int main(int argc, char* argv[])
         s = "button.gif";
     }
 
-    Image img(s.c_str());
-    //img.quantizeColorSpace(YUVColorspace);
-	img.segment(1.0, 1.5); // segments the image with the parameter values 1.0 and 1.5
-	img.modifyImage(); // ensures that no other references to this image exist
+	//IndexDirectory("C:\\Data\\Code\\gitrepo\\GroupGit\\515Project\\Phase 2\\ShapeIndexer\\*.png", "");
+	IndexDirectory("C:\\Data\\Datasets\\reducedtestimages\\", "");
+	
 
-	int cols = img.columns();
-	int rows = img.rows();
-	const PixelPacket *pc = img.getConstPixels(0, 0, cols, rows); // gets a pointer to the pixels of the image
+ //   Image img(s.c_str());
+ //   //img.quantizeColorSpace(YUVColorspace);
+	//img.segment(1.0, 1.5); // segments the image with the parameter values 1.0 and 1.5
+	//img.modifyImage(); // ensures that no other references to this image exist
 
-	int numSegments = CountSegments(pc, cols, rows); // counts the number of segments
-	cout << "Number of segments is: " << numSegments << "\r\n"; // prints to the console
+	//int cols = img.columns();
+	//int rows = img.rows();
+	//const PixelPacket *pc = img.getConstPixels(0, 0, cols, rows); // gets a pointer to the pixels of the image
 
-	IterateThroughEachShape(pc, cols, rows);
+	//int numSegments = CountSegments(pc, cols, rows); // counts the number of segments
+	//cout << "Number of segments is: " << numSegments << "\r\n"; // prints to the console
+
+	//IterateThroughEachShape(pc, cols, rows);
 
 	return 0;
+}
+
+void IndexDirectory(const char *foldername, const char *indexFile)
+{
+	WIN32_FIND_DATAA findData;
+	ofstream indexWriter(indexFile);
+	cout << "Indexing directory: " << foldername;
+
+	char findPattern[MAX_PATH];
+	sprintf(findPattern, "%s*", foldername);
+	HANDLE hFind = FindFirstFileA(findPattern, &findData);
+
+	if (hFind != INVALID_HANDLE_VALUE)
+	{
+		do{
+			if (!(findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+			{
+				cout << "Now indexing: " << findData.cFileName << "\n";
+				char fullFilePath[MAX_PATH];
+				sprintf(fullFilePath, "%s%s", foldername, findData.cFileName);
+				IndexImage(fullFilePath, indexWriter);
+			}
+		} while(FindNextFileA(hFind, &findData));
+
+		FindClose(hFind);
+	}
+
+	indexWriter.flush();
+	indexWriter.close();
+}
+
+void IndexImage(const char* filename, ofstream& indexFile)
+{
+	Image img(filename);
+	//img.colorSpace(ColorspaceType::YUVColorspace);
+	img.segment(1.0, 1.5);
+	img.write("segmented-image.png");
+	int cols = img.columns();
+	int rows = img.rows();
+	const PixelPacket *pc = img.getConstPixels(0, 0, cols, rows);
+	IterateThroughEachShape(pc, cols, rows);
 }
 
 void IterateThroughEachShape(const PixelPacket *px, int cols, int rows)
@@ -56,17 +104,66 @@ void IterateThroughEachShape(const PixelPacket *px, int cols, int rows)
 	bool *shapelayer = new bool[cols*rows]; // a bool array that marks the positions corresponding to the current shape
 
 	memset(pixelvisited, 0, cols*rows*sizeof(bool));
-	
+	vector<MyPoint> importantPoints; // this list contains the top 12 shapes. top shape(s) will be discarded.
 
+	// go through all the shapes, discard the top 1 and anything that covers more than 20% of the image
+	// and then take the top 10.
 	while(FindUnvisitedPixel(px, pixelvisited, cols, rows, &x, &y))
 	{
 		shapecount++;
+		MyPoint pt1 = GetPoint(x, y); // this also sets the size to 1
+		mystack.push_back(pt1); // push the starting point into the stack
+
+		pixelvisited[y*cols + x] = true; // mark the starting pixel as visited
+		Color mycolor = GetPxColor(px, cols, x, y);
+
+		while(!mystack.empty())
+		{
+			MyPoint pt = mystack.back(); mystack.pop_back(); // pop out an element from the stack
+			int x = pt.x;
+			int y = pt.y;
+		
+			if (VisitPixel(x,   y-1, px, pixelvisited, cols, rows, mystack, mycolor)) { pt1.size++; } // north
+			if (VisitPixel(x+1, y-1, px, pixelvisited, cols, rows, mystack, mycolor)) { pt1.size++; } // north-east
+			if (VisitPixel(x+1, y,   px, pixelvisited, cols, rows, mystack, mycolor)) { pt1.size++; } // east
+			if (VisitPixel(x+1, y+1, px, pixelvisited, cols, rows, mystack, mycolor)) { pt1.size++; } // south-east
+			if (VisitPixel(x,   y+1, px, pixelvisited, cols, rows, mystack, mycolor)) { pt1.size++; } // south
+			if (VisitPixel(x-1, y+1, px, pixelvisited, cols, rows, mystack, mycolor)) { pt1.size++; } // south-west
+			if (VisitPixel(x-1, y,   px, pixelvisited, cols, rows, mystack, mycolor)) { pt1.size++; } // west
+			if (VisitPixel(x-1, y-1, px, pixelvisited, cols, rows, mystack, mycolor)) { pt1.size++; } // north-west
+		}
+
+		if (importantPoints.size() < NumImportantShapes) // if the vector doesn't have enough shapes yet
+		{
+			importantPoints.push_back(pt1);
+			sort(importantPoints.begin(), importantPoints.end(), compare_mypoints);
+		}
+		else
+		{
+			if (pt1.size > importantPoints.back().size) // if our current shape size is larger
+			{
+				importantPoints.pop_back();
+				importantPoints.push_back(pt1);
+				sort(importantPoints.begin(), importantPoints.end(), compare_mypoints);
+			}
+		}
+	}	
+
+	memset(pixelvisited, 0, cols*rows*sizeof(bool));
+
+	for (unsigned int i=0; i<importantPoints.size(); i++)
+	//while(FindUnvisitedPixel(px, pixelvisited, cols, rows, &x, &y))
+	{
+		int x = importantPoints[i].x;
+		int y = importantPoints[i].y;
+
 		MyPoint pt1 = GetPoint(x, y);
 		mystack.push_back(pt1); // push the starting point into the stack
 
 		memset(shapelayer, 0, cols*rows*sizeof(bool));
 
 		pixelvisited[y*cols + x] = true; // mark the starting pixel as visited
+		shapelayer[y*cols + x] = true;
 		Color mycolor = GetPxColor(px, cols, x, y);
 
 		while(!mystack.empty())
@@ -86,15 +183,14 @@ void IterateThroughEachShape(const PixelPacket *px, int cols, int rows)
 		}
 
 		// at this point, the shape is ready.
-		FindShapeLibraryDescriptor(px, shapelayer, rows, cols, 0, 0);
-		
+		unsigned int descriptor5 = FindShapeLibraryDescriptor(px, shapelayer, rows, cols, x, y);
 	}
 
 	delete[] pixelvisited;
 	delete[] shapelayer;
 }
 
-int FindShapeLibraryDescriptor(const PixelPacket *pc, const bool *shapelayer, int rows, int cols, int x, int y)
+unsigned int FindShapeLibraryDescriptor(const PixelPacket *pc, const bool *shapelayer, int rows, int cols, int xx, int yy)
 {
 	// step 1: find the bounds of the shape
 	int shapeminx = INT_MAX, shapeminy = INT_MAX, shapemaxx = INT_MIN, shapemaxy = INT_MIN; 
@@ -163,7 +259,7 @@ int FindShapeLibraryDescriptor(const PixelPacket *pc, const bool *shapelayer, in
 	
 	printf("the best match was: (%d, %d, %d, %d)\n", byte1, byte2, byte3, byte4);
 
-	return 1;
+	return riffle(byte1, byte2, byte3, byte4);
 }
 
 int GetShapeLibraryByte(const PixelPacket* shapeLibrary, const PixelPacket* shape, int shapeCols, int shapeRows)
@@ -187,7 +283,7 @@ int GetShapeLibraryByte(const PixelPacket* shapeLibrary, const PixelPacket* shap
 		}
 	}
 
-	printf("inside byte: %d, %d\n", libmaxX, libmaxY);
+	//printf("inside byte: %d, %d\n", libmaxX, libmaxY);
 	return (libmaxX << 4) | libmaxY;
 }
 
@@ -197,19 +293,13 @@ int FindOverlap(const PixelPacket* shapeLibrary, int libx, int liby, const Pixel
 	int starty = (32 - shpRows)/2;
 	int counter = 0;
 
-	//printf("libx: %d, liby: %d\n", libx, liby);
-
-	//Image tim(Geometry(32, 32), ColorMono(true));
-	//tim.modifyImage();
-	//PixelPacket *ptix = tim.getPixels(0, 0, 32, 32);
-
 	for (int y=0; y<shpRows; y++)
 	{
 		for (int x=0; x<shpCols; x++)
 		{
 			if (((shapeLibrary + (liby*32 + starty + y)*256 + (libx*32 + startx + x))->opacity <= 0)) // shape library
 			{
-				if((shape + y*shpCols + x)->red > 0) // XOR with shape
+				if((shape + y*shpCols + x)->red > 0) // sort-of XOR with shape (dont count if shapeLibrary is false)
 				{
 					counter++;
 					//*(ptix + y*32 + x) = ColorMono(false);
@@ -272,6 +362,7 @@ MyPoint GetPoint(int x, int y)
 	MyPoint pt;
 	pt.x = x;
 	pt.y = y;
+	pt.size = 1;
 	return pt;
 }
 
@@ -286,14 +377,17 @@ void VisitPixelAndMarkShape(int x, int y, const PixelPacket *px, bool *pixelvisi
 	}
 }
 
-void VisitPixel(int x, int y, const PixelPacket *px, bool *pixelvisited, int cols, int rows, vector<MyPoint>& mystack, const Color& mycolor)
+bool VisitPixel(int x, int y, const PixelPacket *px, bool *pixelvisited, int cols, int rows, vector<MyPoint>& mystack, const Color& mycolor)
 {
 	// if the pixel is within bounds, hasn't been visited yet, and is the same color as me
 	if (IsInBounds(x, y, cols, rows) && (!pixelvisited[y*cols+x]) && mycolor == GetPxColor(px, cols, x, y))
 	{
 		mystack.push_back(GetPoint(x, y)); // add to the stack
 		pixelvisited[y*cols + x] = true; // mark as visited
+		return true;
 	}
+
+	return false;
 }
 
 void FloodFill(const PixelPacket *px, bool *pixelvisited, int cols, int rows, int x, int y)
@@ -336,4 +430,56 @@ int CountSegments(const PixelPacket *pc, int cols, int rows)
 	}
 
 	return count;
+}
+
+bool compare_mypoints (MyPoint a, MyPoint b)
+{
+	return a.size > b.size;
+}
+
+static unsigned int riffle(int byte1, int byte2, int byte3, int byte4)
+{
+	int descriptor = 0;
+
+	descriptor |= (byte1 & 0x80) ? 0x80000000 : 0;
+	descriptor |= (byte2 & 0x80) ? 0x40000000 : 0;
+	descriptor |= (byte3 & 0x80) ? 0x20000000 : 0;
+	descriptor |= (byte4 & 0x80) ? 0x10000000 : 0;
+	
+	descriptor |= (byte1 & 0x40) ? 0x08000000 : 0;
+	descriptor |= (byte2 & 0x40) ? 0x04000000 : 0;
+	descriptor |= (byte3 & 0x40) ? 0x02000000 : 0;
+	descriptor |= (byte4 & 0x40) ? 0x01000000 : 0;
+	
+	descriptor |= (byte1 & 0x20) ? 0x00800000 : 0;
+	descriptor |= (byte2 & 0x20) ? 0x00400000 : 0;
+	descriptor |= (byte3 & 0x20) ? 0x00200000 : 0;
+	descriptor |= (byte4 & 0x20) ? 0x00100000 : 0;
+	
+	descriptor |= (byte1 & 0x10) ? 0x00080000 : 0;
+	descriptor |= (byte2 & 0x10) ? 0x00040000 : 0;
+	descriptor |= (byte3 & 0x10) ? 0x00020000 : 0;
+	descriptor |= (byte4 & 0x10) ? 0x00010000 : 0;
+	
+	descriptor |= (byte1 & 0x08) ? 0x00008000 : 0;
+	descriptor |= (byte2 & 0x08) ? 0x00004000 : 0;
+	descriptor |= (byte3 & 0x08) ? 0x00002000 : 0;
+	descriptor |= (byte4 & 0x08) ? 0x00001000 : 0;
+	
+	descriptor |= (byte1 & 0x04) ? 0x00000800 : 0;
+	descriptor |= (byte2 & 0x04) ? 0x00000400 : 0;
+	descriptor |= (byte3 & 0x04) ? 0x00000200 : 0;
+	descriptor |= (byte4 & 0x04) ? 0x00000100 : 0;
+	
+	descriptor |= (byte1 & 0x02) ? 0x00000080 : 0;
+	descriptor |= (byte2 & 0x02) ? 0x00000040 : 0;
+	descriptor |= (byte3 & 0x02) ? 0x00000020 : 0;
+	descriptor |= (byte4 & 0x02) ? 0x00000010 : 0;
+	
+	descriptor |= (byte1 & 0x01) ? 0x00000008 : 0;
+	descriptor |= (byte2 & 0x01) ? 0x00000004 : 0;
+	descriptor |= (byte3 & 0x01) ? 0x00000002 : 0;
+	descriptor |= (byte4 & 0x01) ? 0x00000001 : 0;
+
+	return descriptor;
 }

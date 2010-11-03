@@ -13,6 +13,9 @@
 #include <iostream>
 #include <tchar.h>
 #include <vector>
+#include <algorithm>
+#include <windows.h>
+#include <fstream>
 
 #pragma warning (push)
 #pragma warning (disable:4251)
