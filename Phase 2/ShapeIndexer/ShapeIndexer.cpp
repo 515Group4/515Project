@@ -14,8 +14,54 @@ static Image *shapeLibrary2 = NULL;
 static Image *shapeLibrary3 = NULL;
 static Image *shapeLibrary4 = NULL;
 
-static const int NumImportantShapes = 10;
+static int numFeatures = 5; // this is the l value
+static int NumImportantShapes = 10; // this is the k value
+char *InputFolder = "C:\\Data\\Datasets\\reducedtestimages\\";
+char *OutputFile = "C:\\Data\\Datasets\\reduced_test_images_index.txt";
 
+int extractOption(char *argv[], int startIndex)
+{
+	if (argv[startIndex][0] == '-')
+	{
+		// option
+		switch(argv[startIndex][1])
+		{
+		case 'l':
+			sscanf(argv[startIndex + 1], "%d", &numFeatures);
+			if (numFeatures < 1 || numFeatures > 5)
+			{
+				cout << "Fatal Error: k needs to be between 1 and 5";
+				exit(1);
+			}
+			return startIndex + 2;
+		case 'k':
+			sscanf(argv[startIndex + 1], "%d", &NumImportantShapes);
+			if (NumImportantShapes < 1 || NumImportantShapes > 30)
+			{
+				cout << "Fatal Error: k needs to be between 1 and 30";
+				exit(1);
+			}
+			return startIndex+2;
+		case 'o':
+			OutputFile = argv[startIndex + 1];
+			return startIndex + 2;
+		case '?':
+			cout << "Shape Indexer, Group 4. Indexes shapes in a directory of images." << endl;
+			cout << "Usage: ShapeIndex [options] InputDirectory" << endl;
+			cout << "  InputDirectory is a folder of images. Please ensure that there are no other files" << endl << "   in there. Must end with a trailing backslash." << endl;
+			cout << "  Options: " << endl;
+			cout << "   -l <number> The number of features to index, between 1 and 5. Default 5." << endl;
+			cout << "   -k <number> The number of shapes per image to index, between 1 and 30. Default 10." << endl;
+			cout << "   -o <path>   The path to the index file to create" << endl;
+			exit(0);
+		}
+	}
+	else
+	{
+		InputFolder = argv[startIndex];
+		return startIndex + 1;
+	}
+}
 
 int main(int argc, char* argv[])
 {
@@ -26,16 +72,19 @@ int main(int argc, char* argv[])
 
     Magick::InitializeMagick("C:\\Data\\Programs\\ImageMagick\\");
 
-    if (argc > 1)
-    {
-        s = string(argv[1]);
-    }
-    else
-    {
-        s = "button.gif";
-    }
+	int startIndex = 1;
+	while(startIndex < argc)
+	{
+		startIndex = extractOption(argv, startIndex);
+	}
 
-	IndexDirectory("C:\\Data\\Datasets\\reducedtestimages\\", "C:\\Data\\Datasets\\reduced_test_images_index.txt");
+	cout << "Shape Indexer, Group 4. -? for usage." << endl;
+	cout << "Using  l = " << numFeatures << endl;
+	cout << "Using  k = " << NumImportantShapes << endl;
+	cout << "Input Dir: " << InputFolder << endl;
+	cout << "Index Out: " << OutputFile << endl;
+
+	IndexDirectory(InputFolder, OutputFile);
 	return 0;
 }
 
@@ -43,7 +92,6 @@ void IndexDirectory(const char *foldername, const char *indexFile)
 {
 	WIN32_FIND_DATAA findData;
 	ofstream indexWriter(indexFile);
-	cout << "Indexing directory: " << foldername << endl;
 
 	char findPattern[MAX_PATH];
 	sprintf(findPattern, "%s*", foldername);
@@ -167,11 +215,11 @@ void IterateThroughEachShape(const PixelPacket *px, int cols, int rows, ofstream
 		}
 
 		// at this point, the shape is ready.
-		unsigned int descriptor1 = FindColorDescriptor(px, shapelayer, importantPoints[i].size, rows, cols, x, y);
-		unsigned int descriptor2 = (unsigned int)(FindEccentricityDescriptor(px, shapelayer, importantPoints[i].size, rows, cols, x, y) * 65536); // arbit
-		unsigned int descriptor3 = (unsigned int)FindCentralityDescriptor(px, shapelayer, importantPoints[i].size, rows, cols, x, y);
-		unsigned int descriptor4 = FindMomentDescriptor(px, shapelayer, importantPoints[i].size, rows, cols, x, y);
-		unsigned int descriptor5 = FindShapeLibraryDescriptor(px, shapelayer, rows, cols, x, y);
+		unsigned int descriptor1 = numFeatures > 0 ? FindColorDescriptor(px, shapelayer, importantPoints[i].size, rows, cols, x, y) : 0;
+		unsigned int descriptor2 = numFeatures > 1 ? (unsigned int)(FindEccentricityDescriptor(px, shapelayer, importantPoints[i].size, rows, cols, x, y) * 65536) : 0; // arbit
+		unsigned int descriptor3 = numFeatures > 2 ? (unsigned int)FindCentralityDescriptor(px, shapelayer, importantPoints[i].size, rows, cols, x, y) : 0;
+		unsigned int descriptor4 = numFeatures > 3 ? FindMomentDescriptor(px, shapelayer, importantPoints[i].size, rows, cols, x, y) : 0;
+		unsigned int descriptor5 = numFeatures > 4 ? FindShapeLibraryDescriptor(px, shapelayer, rows, cols, x, y) : 0;
 
 		cout << "------------------------" << endl;
 		cout << "Color Descr:   \t" << descriptor1 << endl;
@@ -182,8 +230,6 @@ void IterateThroughEachShape(const PixelPacket *px, int cols, int rows, ofstream
 
 		indexFile << filename << "," << descriptor1 << "," << descriptor2 << "," << descriptor3 << "," << descriptor4 << "," << descriptor5 << endl; 
 	}
-
-
 
 	delete[] pixelvisited;
 	delete[] shapelayer;
