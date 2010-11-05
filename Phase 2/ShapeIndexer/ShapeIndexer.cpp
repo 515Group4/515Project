@@ -270,7 +270,7 @@ void IterateThroughEachShape(const PixelPacket *px, int cols, int rows, ofstream
 		cout << "------------------------" << endl;
 		cout << "Color Descr:   \t" << descriptor1 << endl;
 		cout << "Eccentricity:  \t" << descriptor2 << endl;
-		cout << "Centrality:    \t" << descriptor3 << endl;
+		cout << "Circularity:   \t" << descriptor3 << endl; // Called centrality but that is innacurate, should be circularity
 		cout << "Moment(2, 2):  \t" << descriptor4 << endl;
 		cout << "Shape Library: \t" << descriptor5 << endl;
 
