@@ -19,6 +19,12 @@ static int NumImportantShapes = 10; // this is the k value
 char *InputFolder = "C:\\Data\\Datasets\\reducedtestimages\\";
 char *OutputFile = "C:\\Data\\Datasets\\reduced_test_images_index.txt";
 
+// The number of extra shapes to keep track of, over and above the prescribed k
+// since we are discarding anything more than 20%, this can be at max 5 such shapes, 
+// 6 to be on the safe side.
+static const int NumExtraImpShapes = 6; 
+
+
 int extractOption(char *argv[], int startIndex)
 {
 	if (argv[startIndex][0] == '-')
@@ -165,7 +171,7 @@ void IterateThroughEachShape(const PixelPacket *px, int cols, int rows, ofstream
 			if (VisitPixel(x-1, y-1, px, pixelvisited, cols, rows, mystack, mycolor)) { pt1.size++; } // north-west
 		}
 
-		if (importantPoints.size() < NumImportantShapes) // if the vector doesn't have enough shapes yet
+		if (importantPoints.size() < NumImportantShapes + NumExtraImpShapes) // if the vector doesn't have enough shapes yet
 		{
 			importantPoints.push_back(pt1);
 			sort(importantPoints.begin(), importantPoints.end(), compare_mypoints);
@@ -179,11 +185,51 @@ void IterateThroughEachShape(const PixelPacket *px, int cols, int rows, ofstream
 				sort(importantPoints.begin(), importantPoints.end(), compare_mypoints);
 			}
 		}
-	}	
+	}
+
+	// post process and remove the biggest, and the bigger than 20%s
+	int numBigShapes = 0;
+
+	// step 1: count the bigger than 20% shapes.
+	for (unsigned int i=0; i<importantPoints.size(); i++)
+	{
+		if (importantPoints[i].size > cols * rows / 5) // 20%
+		{
+			numBigShapes++;
+		}
+	}
+
+	// step 2: if there are no shapes bigger than 20%, determine if it is safe to chop the largest one off
+	if (numBigShapes < 1)
+	{
+		if (importantPoints.size()> NumImportantShapes)
+		{
+			numBigShapes = 1;
+		}
+	}
+
+	// step 3: determine how many of those big ones its safe to chop off (dont chop off negative 5 shapes either)
+	if (importantPoints.size() - numBigShapes < NumImportantShapes)
+	{
+		numBigShapes = importantPoints.size() - NumImportantShapes, 0;
+	}
+	if (numBigShapes < 0) numBigShapes = 0;
+
+	// step 4: shuffle everyone forward numBigShapes places
+	for (unsigned int i=0; i<importantPoints.size()-numBigShapes; i++)
+	{
+		importantPoints[i] = importantPoints[i+numBigShapes];
+	}
+
+	// step 5: remove the extra items from the end
+	for (int i=0; i<numBigShapes; i++)
+	{
+		importantPoints.pop_back(); // and remove the last one
+	}
 
 	memset(pixelvisited, 0, cols*rows*sizeof(bool));
 
-	for (unsigned int i=0; i<importantPoints.size(); i++)
+	for (unsigned int i=0; i<importantPoints.size() && i<NumImportantShapes; i++)
 	//while(FindUnvisitedPixel(px, pixelvisited, cols, rows, &x, &y))
 	{
 		int x = importantPoints[i].x;
@@ -225,7 +271,7 @@ void IterateThroughEachShape(const PixelPacket *px, int cols, int rows, ofstream
 		cout << "Color Descr:   \t" << descriptor1 << endl;
 		cout << "Eccentricity:  \t" << descriptor2 << endl;
 		cout << "Centrality:    \t" << descriptor3 << endl;
-		cout << "Moment(2, 1):  \t" << descriptor4 << endl;
+		cout << "Moment(2, 2):  \t" << descriptor4 << endl;
 		cout << "Shape Library: \t" << descriptor5 << endl;
 
 		indexFile << filename << "," << descriptor1 << "," << descriptor2 << "," << descriptor3 << "," << descriptor4 << "," << descriptor5 << endl; 

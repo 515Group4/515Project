@@ -8,6 +8,7 @@ typedef struct MyPoint_t
 	int size;
 } MyPoint;
 
+int		extractOption(char *argv[], int startIndex);
 void	IndexDirectory(const char *foldername, const char *indexFile);
 bool	IsInBounds(int x, int y, int cols, int rows);
 Color	GetPxColor(const PixelPacket *px, int cols, int x, int y);

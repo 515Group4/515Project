@@ -278,7 +278,7 @@ unsigned int FindMomentDescriptor(const PixelPacket *pc, const bool *shapelayer,
 				double x = i - centerOfMass_X;
 				double y = j - centerOfMass_Y;
 				int px = x*x;
-				int qy = y<0 ? -y : y;
+				int qy = y*y;
 				moment+= px*qy;
 			}
 		}
