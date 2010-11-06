@@ -18,6 +18,7 @@ static int numFeatures = 5; // this is the l value
 static int NumImportantShapes = 10; // this is the k value
 char *InputFolder = "C:\\Data\\Datasets\\reducedtestimages\\";
 char *OutputFile = "C:\\Data\\Datasets\\reduced_test_images_index.txt";
+static bool singleFile = false; // Do we want a single file rather a directory
 
 // The number of extra shapes to keep track of, over and above the prescribed k
 // since we are discarding anything more than 20%, this can be at max 5 such shapes, 
@@ -51,13 +52,21 @@ int extractOption(char *argv[], int startIndex)
 		case 'o':
 			OutputFile = argv[startIndex + 1];
 			return startIndex + 2;
+		case 'F':
+			singleFile = true;
+			return startIndex + 1;
 		case '?':
 			cout << "Shape Indexer, Group 4. Indexes shapes in a directory of images." << endl;
-			cout << "Usage: ShapeIndex [options] InputDirectory" << endl;
+			cout << "Usage: ShapeIndex [options] InputDirectory/File" << endl;
 			cout << "  InputDirectory is a folder of images. Please ensure that there are no other files" << endl << "   in there. Must end with a trailing backslash." << endl;
 			cout << "  Options: " << endl;
 			cout << "   -l <number> The number of features to index, between 1 and 5. Default 5." << endl;
+<<<<<<< HEAD
 			cout << "   -k <number> The number of shapes per image to index, between 1 and 250. Default 10." << endl;
+=======
+			cout << "   -k <number> The number of shapes per image to index, between 1 and 30. Default 10." << endl;
+			cout << "   -F Index a single file instead of an entire directory" << endl;
+>>>>>>> b3a74fbd761b507a8caff97638f5a057c906b547
 			cout << "   -o <path>   The path to the index file to create" << endl;
 			exit(0);
 		}
@@ -87,7 +96,7 @@ int main(int argc, char* argv[])
 	cout << "Shape Indexer, Group 4. -? for usage." << endl;
 	cout << "Using  l = " << numFeatures << endl;
 	cout << "Using  k = " << NumImportantShapes << endl;
-	cout << "Input Dir: " << InputFolder << endl;
+	cout << "Input Dir/File: " << InputFolder << endl;
 	cout << "Index Out: " << OutputFile << endl;
 
 	IndexDirectory(InputFolder, OutputFile);
@@ -99,21 +108,28 @@ void IndexDirectory(const char *foldername, const char *indexFile)
 	WIN32_FIND_DATAA findData;
 	ofstream indexWriter(indexFile);
 
-	char findPattern[MAX_PATH];
-	sprintf(findPattern, "%s*", foldername);
-	HANDLE hFind = FindFirstFileA(findPattern, &findData);
-
-	if (hFind != INVALID_HANDLE_VALUE)
+	if(! singleFile)
 	{
-		do{
-			if (!(findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
-			{
-				cout << endl << "Now indexing: " << findData.cFileName << "\n";
-				IndexImage(foldername, findData.cFileName, indexWriter);
-			}
-		} while(FindNextFileA(hFind, &findData));
+		char findPattern[MAX_PATH];
+		sprintf(findPattern, "%s*", foldername);
+		HANDLE hFind = FindFirstFileA(findPattern, &findData);
 
-		FindClose(hFind);
+		if (hFind != INVALID_HANDLE_VALUE)
+		{
+			do{
+				if (!(findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+				{
+					cout << endl << "Now indexing: " << findData.cFileName << "\n";
+					IndexImage(foldername, findData.cFileName, indexWriter);
+				}
+			} while(FindNextFileA(hFind, &findData));
+
+			FindClose(hFind);
+		}
+	}
+	else
+	{
+		IndexImage(foldername, "", indexWriter);
 	}
 
 	indexWriter.flush();
@@ -124,6 +140,7 @@ void IndexImage(const char* foldername, const char* filename, ofstream& indexFil
 {
 	char fullFilePath[MAX_PATH];
 	sprintf(fullFilePath, "%s%s", foldername, filename);
+	cout << "Image file: " << fullFilePath << endl;
 	Image img(fullFilePath);
 	//img.colorSpace(ColorspaceType::YUVColorspace);
 	img.segment(1.0, 1.5);
@@ -274,7 +291,9 @@ void IterateThroughEachShape(const PixelPacket *px, int cols, int rows, ofstream
 		cout << "Moment(2, 2):  \t" << descriptor4 << endl;
 		cout << "Shape Library: \t" << descriptor5 << endl;
 
-		indexFile << filename << "," << descriptor1 << "," << descriptor2 << "," << descriptor3 << "," << descriptor4 << "," << descriptor5 << endl; 
+		// New order
+		// 
+		indexFile << filename << "," << descriptor4 << "," << descriptor1 << "," << descriptor5 << "," << descriptor3 << "," << descriptor2 << endl; 
 	}
 
 	delete[] pixelvisited;
