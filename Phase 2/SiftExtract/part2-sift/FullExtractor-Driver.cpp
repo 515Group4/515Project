@@ -8,27 +8,25 @@ void IndexFile(std::string, std::string, Sifter *, int, int);
 
 int main(int argc, const char * argv[]){
 	
-	if(argc != 4)
+	if(argc < 4)
 	{
 		std::cout << "Usage: " << std::endl;
-		std::cout << "SiftExtractor.exe <k - shapes> <l - descriptors> <image directory>" << std::endl;
+		std::cout << "SiftExtractor.exe <k - shapes> <l - descriptors> [OPTION -F] <image directory/file>" << std::endl;
 		return 1;
 	}
 	int newK = atoi(argv[1]);
 	int newL = atoi(argv[2]);
-	IndexDirectory(argv[3], newK, newL);
-/*	Sifter test;
-	std::vector<std::vector<int>> exam;
-	exam = test.keynodeSetExtract(argv[1], 10,10);
-	for(int i = 0; i < exam.size(); i++)
+	if(argc > 4)
 	{
-		for(int j = 0; j < exam[i].size(); j++)
-		{
-			std::cout << exam[i][j] << " ";
-		}
-		std::cout << std::endl;
+		// assume we're doing a direct file
+		Sifter siftOMatic;
+		IndexFile(argv[4], "search", &siftOMatic, newK, newL);
 	}
-	std::cout << "DONE!" << std::endl;*/
+	else
+	{
+		IndexDirectory(argv[3], newK, newL);
+	}
+
 
 	return 0;
 }

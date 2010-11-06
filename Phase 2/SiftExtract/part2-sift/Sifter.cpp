@@ -42,7 +42,7 @@ std::vector<std::vector<int>> Sifter::keynodeSetExtract(std::string fname, int t
 	// get K returns descriptors
 	std::vector<std::vector<float>> myp = sdata->getP();
 	std::vector<std::vector<int>> myk = sdata->getK();
-
+	
 	std::vector<std::vector<float>> pruned;
 	if(targetK > myp.size())
 	{
@@ -88,10 +88,10 @@ std::vector<std::vector<int>> Sifter::keynodeSetExtract(std::string fname, int t
 		}
 	}
 	std::vector<int> final;
-
+	
 	if(justTop == false)
 	{
-		final = this->kMeans(targetK,candidates,myp);
+		final = this->kMeans(targetK,candidates,myp);	
 	}
 	else
 	{
@@ -235,7 +235,7 @@ std::vector<int> Sifter::kMeans(int targetK, std::vector<int> candidates, std::v
 	
 
 	// let's just start with 5...
-	for(int i = 0; i < 10; i++)
+	for(int i = 0; i < 5; i++)
 	{
 		//re compute centroid
 		//for every cluster
@@ -244,10 +244,14 @@ std::vector<int> Sifter::kMeans(int targetK, std::vector<int> candidates, std::v
 			std::vector<int> c = member[j]; // get members in this cluster
 			float x = 0;
 			float y = 0;
+			
 			for(int k = 0; k < c.size(); k++)
-			{
-				x += data[c[k]][0]; // add x value for each member of cluster
-				y += data[c[k]][1]; // add y value for each member of cluster
+			{	
+				if(c[k] < data.size()) // error check
+				{
+				  x += data[c[k]][0]; // add x value for each member of cluster
+				  y += data[c[k]][1]; // add y value for each member of cluster
+				}
 			}
 			int s = c.size();
 			if(s == 0)
@@ -258,11 +262,11 @@ std::vector<int> Sifter::kMeans(int targetK, std::vector<int> candidates, std::v
 			y = y / s;
 			
 			// 0,0 are empty clusters, so let's random pick another centroid
-			if(x == 0)
+			if(x < 0.0001)
 			{
 				x = std::rand() % 100 + 1;
 			}
-			if(y == 0)
+			if(y < 0.0001)
 			{
 				y = std::rand() % 100 + 1;
 			}
@@ -290,7 +294,7 @@ std::vector<int> Sifter::kMeans(int targetK, std::vector<int> candidates, std::v
 	{
 		//std::cout << "centroid " << i << " :: " << centroids[i][0] << "," << centroids[i][1] << std::endl;
 		float distance = 10000;
-		int winner = 0;
+		int winner = std::rand() % candidates.size();
 		for(int j = 0; j < member[i].size(); j++)
 		{
 			float d = this->distance(centroids[i][0],centroids[i][1],data[member[i][j]][0],data[member[i][j]][1]);
