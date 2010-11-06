@@ -164,14 +164,19 @@ namespace NearestNeighbor
         }
     }
 
+    class MyResultSet
+    {
+        //
+    }
+
     class Program
     {
         static string folder = "..\\..";
-        static int pageSize = 420;
-        static int numFeatures = 5;
+        static int pageSize = 6000;
+        static int numFeatures = 64;
         static string treeFileName = "STRTree.txt";
         static string leafFileName = "STRLeaf.txt";
-        static int numNeighbors = 5;
+        static int numNeighbors = 10;
 
         static int findTheRootOffset(FileStream fs)
         {
@@ -209,14 +214,33 @@ namespace NearestNeighbor
 
             // Step 2. Find the query
             DataPoint query = new DataPoint(numFeatures);
-            query.values[0] = 4150645879; query.values[1] = 55876; query.values[2] = 5; query.values[3] = 378477; query.values[4] = 134742016; // 0033.tiff
+            //query.values = new uint[]{ 0, 0, 5277, 5414848, 0 }; // 1.1.02.tiff
+            //query.values = new uint[] { 201330451, 0, 15444, 2180706326, 138805416 };//4.1.01.tiff,
+            //query.values = new uint[] { 0, 63080, 1611, 423413, 143130760 };//1.4.10.tiff,
+            //query.values = new uint[] { 1266436991, 0, 138795, 392952608, 138805928 };//7.2.01
+            //query.values = new uint[] { 336, 96, 315, 83, 119, 149, 339, 26, 331, 82, 99, 43, 167, 85, 154, 36 }; // 1002.tif,
+            //query.values = new uint[] { 82, 4, 37, 5, 69, 0, 51, 13, 20, 29, 1, 402, 39, 1, 40, 18 };//1042.tif
+            //query.values = new uint[] { 36, 59, 98, 10, 42, 177, 89, 17, 99, 45, 13, 67, 167, 43, 81, 26 };//1008.tif,
+            //query.values = new uint[] { 127, 143, 146, 76, 115, 227, 342, 60, 297, 147, 113, 39, 228, 112, 101, 121 }; // 104.tif, 
+
+            query.values = new uint[] { 0, 0, 0, 0, 95, 41, 0, 0, 263, 35, 0, 2, 101, 218, 139, 5, 0, 0, 0, 0, 49, 44, 54, 8, 200, 7, 7, 21, 125, 44, 162, 38, 0, 0, 0, 0, 72, 0, 41, 68, 167, 0, 2, 96, 46, 11, 117, 71, 0, 0, 0, 0, 80, 0, 0, 50, 154, 0, 0, 123, 15, 4, 11, 85 };
+
+            //query.values = new uint[]{4150645879, 55876, 5, 378477, 134742016}; // 0033.tiff
+            //query.values = new uint[] { 0, 73, 76, 1, 54, 44, 1, 9, 161, 0, 0, 2, 115, 0, 0, 2, 0, 207, 41, 0, 45, 140, 78, 1, 150, 4, 
+            //    6, 6, 139, 0, 0, 6, 0, 13, 116, 6, 32, 6, 195, 7, 145, 0, 11, 21, 142, 0, 1, 2, 0, 0, 152, 31, 21, 0, 130, 95, 139, 0, 
+            //    4, 54, 116, 0, 1, 6 };
 
             // Step 3. Find a random point in the database
+            byte[] leafPage = new byte[pageSize];
+            fl.Read(leafPage, 0, pageSize);
+            LeafPage p = LeafPage.ParseFromBytes(leafPage);
+
             best = new BestMatch[numNeighbors];
             for (int i = 0; i < numNeighbors; i++)
             {
                 best[i].point = new DataPoint(numFeatures);
-                best[i].point.values = new uint[] { 0, 0, 5277, 5414848, 0 }; // 1.1.02.tiff
+                best[i].point.fileId = p.values[0].fileId;
+                best[i].point.values = p.values[0].values;
                 best[i].distance = best[i].point.distance(query);
             }
 
@@ -225,7 +249,12 @@ namespace NearestNeighbor
 
             foreach (var item in best)
             {
-                Console.WriteLine(item.point.fileId);
+                Console.Write(item.point.fileId + "\t\t: " );
+                for (int j = 0; j < numFeatures; j++)
+                {
+                    //Console.Write(", " + item.point.values[j]);
+                }
+                Console.WriteLine();
             }
 
             // Step f. Cleanup
@@ -233,12 +262,24 @@ namespace NearestNeighbor
             fl.Close();
         }
 
+        static List<int> pointers = new List<int>();
+
         private static void recurseFind(DataPoint query, InternalTreePage page, FileStream fs, FileStream fl)
         {
             foreach (var node in page.rectangles)
             {
                 if (node.MinDistance(query) <= best[numNeighbors-1].distance)
                 {
+                    if (pointers.Contains(node.pointer))
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        pointers.Add(node.pointer);
+                    }
+
+                    numPagesAccessed++;
                     // check if its a leaf
                     if (node.pointer < 0)
                     {
@@ -265,7 +306,6 @@ namespace NearestNeighbor
                     }
                     else // its an internal node
                     {
-                        numPagesAccessed++;
                         fs.Seek(node.pointer, SeekOrigin.Begin);
                         byte[] intPage = new byte[pageSize];
                         fs.Read(intPage, 0, pageSize);
