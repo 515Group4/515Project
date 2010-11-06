@@ -12,4 +12,9 @@ Folder is the full path of a folder full of only image files in which to index.
 
 This will write an index file at C:\Data\Datasets\reduced_test_images_index.txt which can then be consumed via indexer.
 
-To index shapes using SIFT, simple compile The SiftExtractor project.  In order for this program to run, ImageMagick dlls, vl.dll and sift.exe (from the vlfeat package) must be present in the executables directory
+To index shapes using SIFT, simple compile The SiftExtractor project.  In order for this program to run, ImageMagick dlls, vl.dll and sift.exe (from the vlfeat package) must be present in the executables directory.
+
+To run the program simply run:
+SiftExtractor.exe <number k> <number l> [Option -F] <folder/file>
+Use -F if you only want an individual file.  All output will be sent to
+output.txt of the current directory.
