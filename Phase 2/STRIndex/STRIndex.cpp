@@ -12,8 +12,8 @@ using namespace std;
 // Global Variables
 int indexDesc = 0;
 int minmax = 0;
-int numDesc = 2;
-int diskSize = 350;
+int numDesc = 5;
+int diskSize = 420;
 string filePath = "C:\\Preetika\\MWD\\ProjectCode\\STR\\";
 // Function to compare the L values
 bool compare_nocase1 (string first, string second)
@@ -137,6 +137,8 @@ list<string> sortObjects(string fileName, int check)
 }
 int main ()
 {
+	// Take input from user - number of descriptors and disk page size
+
 	list<string> fName;
 	list<string> fNamePrev;
 	list<string> mylist;
@@ -514,17 +516,9 @@ int main ()
 			numberOfBlock = blockCounter;
 			blockCounter = 0;
 		}
-		internalNode.seekg(700);
-		string lin = "";
-		getline(internalNode, lin);
-		cout << lin << endl;
-		getline(internalNode, lin);
-		cout << lin << endl;
-		getline(internalNode, lin);
-		cout << lin << endl;
-		getline(internalNode, lin);
-		cout << lin << endl;
-		
+		internalNode.seekp(setSeekPointer1);
 	}	
+	internalNode.flush();
+	internalNode.close();
 	return 0;
 }
