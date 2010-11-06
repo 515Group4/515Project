@@ -151,6 +151,19 @@ namespace NearestNeighbor
         }
     }
 
+    struct BestMatch : IComparable<BestMatch>
+    {
+        public DataPoint point;
+        public double distance;
+
+        public int CompareTo(BestMatch other)
+        {
+            if (this.distance < other.distance) return -1;
+            if (this.distance == other.distance) return 0;
+            return 1;
+        }
+    }
+
     class Program
     {
         static string folder = "..\\..";
@@ -158,6 +171,7 @@ namespace NearestNeighbor
         static int numFeatures = 5;
         static string treeFileName = "STRTree.txt";
         static string leafFileName = "STRLeaf.txt";
+        static int numNeighbors = 5;
 
         static int findTheRootOffset(FileStream fs)
         {
@@ -175,8 +189,7 @@ namespace NearestNeighbor
         }
 
         static int numPagesAccessed = 0;
-        static DataPoint best;
-        static double bestDist;
+        static BestMatch[] best;
 
         static void Main(string[] args)
         {
@@ -199,14 +212,21 @@ namespace NearestNeighbor
             query.values[0] = 4150645879; query.values[1] = 55876; query.values[2] = 5; query.values[3] = 378477; query.values[4] = 134742016; // 0033.tiff
 
             // Step 3. Find a random point in the database
-            best = new DataPoint(numFeatures);
-            best.values = new uint[] { 0, 0, 5277, 5414848, 0 }; // 1.1.02.tiff
-            bestDist = best.distance(query);
+            best = new BestMatch[numNeighbors];
+            for (int i = 0; i < numNeighbors; i++)
+            {
+                best[i].point = new DataPoint(numFeatures);
+                best[i].point.values = new uint[] { 0, 0, 5277, 5414848, 0 }; // 1.1.02.tiff
+                best[i].distance = best[i].point.distance(query);
+            }
 
             // Step 4. recurse over the tree, trying to find candidate nodes to expand
             recurseFind(query, level2, fs, fl);
 
-            Console.WriteLine("Filename: " + best.fileId);
+            foreach (var item in best)
+            {
+                Console.WriteLine(item.point.fileId);
+            }
 
             // Step f. Cleanup
             fs.Close();
@@ -217,7 +237,7 @@ namespace NearestNeighbor
         {
             foreach (var node in page.rectangles)
             {
-                if (node.MinDistance(query) <= bestDist)
+                if (node.MinDistance(query) <= best[numNeighbors-1].distance)
                 {
                     // check if its a leaf
                     if (node.pointer < 0)
@@ -230,10 +250,16 @@ namespace NearestNeighbor
                         // go through all the elements in p and check which one is the closest
                         foreach (var item in p.values)
                         {
-                            if (item.distance(query) < bestDist)
+                            var bestDist_t = item.distance(query);
+                            if (bestDist_t < best[numNeighbors-1].distance)
                             {
-                                bestDist = item.distance(query);
-                                best = item;
+                                List<BestMatch> ll = new List<BestMatch>();
+                                ll.AddRange(best);
+                                ll.Add(new BestMatch() { distance = bestDist_t, point = item });
+                                ll.Sort();
+
+                                ll.RemoveAt(numNeighbors);
+                                best = ll.ToArray();
                             }
                         }
                     }
