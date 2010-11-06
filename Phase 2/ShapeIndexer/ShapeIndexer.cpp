@@ -61,12 +61,8 @@ int extractOption(char *argv[], int startIndex)
 			cout << "  InputDirectory is a folder of images. Please ensure that there are no other files" << endl << "   in there. Must end with a trailing backslash." << endl;
 			cout << "  Options: " << endl;
 			cout << "   -l <number> The number of features to index, between 1 and 5. Default 5." << endl;
-<<<<<<< HEAD
 			cout << "   -k <number> The number of shapes per image to index, between 1 and 250. Default 10." << endl;
-=======
-			cout << "   -k <number> The number of shapes per image to index, between 1 and 30. Default 10." << endl;
 			cout << "   -F Index a single file instead of an entire directory" << endl;
->>>>>>> b3a74fbd761b507a8caff97638f5a057c906b547
 			cout << "   -o <path>   The path to the index file to create" << endl;
 			exit(0);
 		}
