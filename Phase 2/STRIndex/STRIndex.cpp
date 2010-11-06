@@ -12,8 +12,8 @@ using namespace std;
 // Global Variables
 int indexDesc = 0;
 int minmax = 0;
-int numDesc = 5;
-int diskSize = 420;
+int numDesc = 0; //5;
+int diskSize = 0; //420;
 string filePath = "C:\\Preetika\\MWD\\ProjectCode\\STR\\";
 // Function to compare the L values
 bool compare_nocase1 (string first, string second)
@@ -138,6 +138,10 @@ list<string> sortObjects(string fileName, int check)
 int main ()
 {
 	// Take input from user - number of descriptors and disk page size
+	cout << "Please enter the number of descriptors " << endl;
+	cin >> numDesc;
+	cout << "Please enter the disk page size " << endl;
+	cin >> diskSize;
 
 	list<string> fName;
 	list<string> fNamePrev;
@@ -149,7 +153,7 @@ int main ()
 	int numObjects = 0;
 	int numPPage1 = diskSize/(14*(numDesc+1));
 	int numObjPPage = numPPage1; 
-	cout << numObjPPage << endl;
+	//cout << numObjPPage << endl;
 	int numDimension = numDesc;
 	int numObjPSlice;
 
@@ -214,6 +218,7 @@ int main ()
 			fName.pop_front();
 		}
 	}
+	// Gather all the objects in a list after performing STR algo
 	fNamePrev.sort();
 	list<string> finalListObjects;
 	string line;
@@ -241,6 +246,8 @@ int main ()
 			cout << "Unable to open file. " << tempFName << endl;
 		}		
 	}
+	
+	// Write all the objects to data file according to the page size
 	int count = 0;
 	string temp;
 	temp = filePath;
@@ -250,7 +257,6 @@ int main ()
 	int seekPointer = 0;
 	for (it=finalListObjects.begin(); it!=finalListObjects.end();)	
 	{
-		
 		count = 1;
 		if(ffile.is_open())
 		{
@@ -277,7 +283,7 @@ int main ()
 	int getSeekPointer = 0;
 	int setSeekPointer = 0;
 	int setSeekPointerLocal = 0;
-	int noOfInternalNodePPage = numObjPPage/2; //3;
+	int noOfInternalNodePPage = numObjPPage/2; //Since node is of double size as that of the data entry
 	int localSetSeekPointer2 = 0;
 	string secondToLeaf;
 	string internalData = "";
@@ -516,7 +522,6 @@ int main ()
 			numberOfBlock = blockCounter;
 			blockCounter = 0;
 		}
-		internalNode.seekp(setSeekPointer1);
 	}	
 	internalNode.flush();
 	internalNode.close();
