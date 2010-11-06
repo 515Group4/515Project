@@ -42,9 +42,9 @@ int extractOption(char *argv[], int startIndex)
 			return startIndex + 2;
 		case 'k':
 			sscanf(argv[startIndex + 1], "%d", &NumImportantShapes);
-			if (NumImportantShapes < 1 || NumImportantShapes > 30)
+			if (NumImportantShapes < 1 || NumImportantShapes > 250)
 			{
-				cout << "Fatal Error: k needs to be between 1 and 30";
+				cout << "Fatal Error: k needs to be between 1 and 250";
 				exit(1);
 			}
 			return startIndex+2;
@@ -57,7 +57,7 @@ int extractOption(char *argv[], int startIndex)
 			cout << "  InputDirectory is a folder of images. Please ensure that there are no other files" << endl << "   in there. Must end with a trailing backslash." << endl;
 			cout << "  Options: " << endl;
 			cout << "   -l <number> The number of features to index, between 1 and 5. Default 5." << endl;
-			cout << "   -k <number> The number of shapes per image to index, between 1 and 30. Default 10." << endl;
+			cout << "   -k <number> The number of shapes per image to index, between 1 and 250. Default 10." << endl;
 			cout << "   -o <path>   The path to the index file to create" << endl;
 			exit(0);
 		}
