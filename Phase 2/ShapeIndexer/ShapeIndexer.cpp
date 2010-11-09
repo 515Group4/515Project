@@ -289,7 +289,12 @@ void IterateThroughEachShape(const PixelPacket *px, int cols, int rows, ofstream
 
 		// New order
 		// 
-		indexFile << filename << "," << descriptor4 << "," << descriptor1 << "," << descriptor5 << "," << descriptor3 << "," << descriptor2 << endl; 
+		indexFile << filename << "," << descriptor4;
+		if (numFeatures > 1) { indexFile << "," << descriptor1; }
+		if (numFeatures > 2) { indexFile << "," << descriptor5; }
+		if (numFeatures > 3) { indexFile << "," << descriptor3; }
+		if (numFeatures > 4) { indexFile << "," << descriptor2; }
+		indexFile << endl; 
 	}
 
 	delete[] pixelvisited;

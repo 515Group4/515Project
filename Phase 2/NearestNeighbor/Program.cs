@@ -164,19 +164,53 @@ namespace NearestNeighbor
         }
     }
 
-    class MyResultSet
+    class MyResultSet : List<MyResultEntry>
     {
-        //
+        public void AddTo(string fname, double distance)
+        {
+            MyResultEntry entry = new MyResultEntry() { filename = fname };
+            if (this.Contains(entry))
+            {
+                this[this.IndexOf(entry)].score += distance == 0 ? 1000 : 1 / distance;
+            }
+            else
+            {
+                entry.score = distance == 0 ? 10000 : 100 / distance;
+                this.Add(entry);
+            }
+        }
+    }
+
+    class MyResultEntry : IComparable<MyResultEntry>, IEquatable<MyResultEntry>
+    {
+        public string filename;
+        public double score;
+
+        public int CompareTo(MyResultEntry other)
+        {
+            if (this.score > other.score) return -1;
+            if (this.score == other.score) return 0;
+            return 1;
+        }
+
+        public bool Equals(MyResultEntry other)
+        {
+            return this.filename == other.filename;
+        }
     }
 
     class Program
     {
         static string folder = "..\\..";
         static int pageSize = 6000;
-        static int numFeatures = 64;
         static string treeFileName = "STRTree.txt";
         static string leafFileName = "STRLeaf.txt";
         static int numNeighbors = 10;
+        static int numPagesAccessed = 0;
+        static BestMatch[] best;
+        static string queryfile = null;
+        static string outputfile = "results.txt";
+        static List<int> pointers = new List<int>();
 
         static int findTheRootOffset(FileStream fs)
         {
@@ -193,11 +227,29 @@ namespace NearestNeighbor
             return offsetFromEnd;
         }
 
-        static int numPagesAccessed = 0;
-        static BestMatch[] best;
 
         static void Main(string[] args)
         {
+            // Usage:
+            // NearestNeighbour [indexFolder queryfile pagesize=6000 outputfile=results.txt]
+
+            if (args.Length > 0)
+            {
+                folder = args[0];
+            }
+            if (args.Length > 1)
+            {
+                queryfile = args[1];
+            }
+            if (args.Length > 2)
+            {
+                pageSize = int.Parse(args[2]);
+            }
+            if (args.Length > 3)
+            {
+                outputfile = args[3];
+            }
+
             // Step 1. Find the root node
             FileStream fs = new FileStream(Path.Combine(folder, treeFileName), FileMode.Open);
             FileStream fl = new FileStream(Path.Combine(folder, leafFileName), FileMode.Open);
@@ -207,62 +259,103 @@ namespace NearestNeighbor
             fs.Read(rootpage, 0, offsetFromEnd);
             var root = InternalTreePage.ParseFromBytes(rootpage);
 
-            fs.Seek(root.rectangles[0].pointer, SeekOrigin.Begin);
-            byte[] intPage = new byte[pageSize];
-            fs.Read(intPage, 0, pageSize);
-            var level2 = InternalTreePage.ParseFromBytes(intPage);
+            long TotalNumSectors = (fs.Length + fl.Length) / (long)pageSize;
+            long ActualPagesAccessed = 0;
+            long NumQueryAccesses = 0;
+
+            //fs.Seek(root.rectangles[0].pointer, SeekOrigin.Begin);
+            //byte[] intPage = new byte[pageSize];
+            //fs.Read(intPage, 0, pageSize);
+            //var level2 = InternalTreePage.ParseFromBytes(intPage);
 
             // Step 2. Find the query
-            DataPoint query = new DataPoint(numFeatures);
-            //query.values = new uint[]{ 0, 0, 5277, 5414848, 0 }; // 1.1.02.tiff
-            //query.values = new uint[] { 201330451, 0, 15444, 2180706326, 138805416 };//4.1.01.tiff,
-            //query.values = new uint[] { 0, 63080, 1611, 423413, 143130760 };//1.4.10.tiff,
-            //query.values = new uint[] { 1266436991, 0, 138795, 392952608, 138805928 };//7.2.01
-            //query.values = new uint[] { 336, 96, 315, 83, 119, 149, 339, 26, 331, 82, 99, 43, 167, 85, 154, 36 }; // 1002.tif,
-            //query.values = new uint[] { 82, 4, 37, 5, 69, 0, 51, 13, 20, 29, 1, 402, 39, 1, 40, 18 };//1042.tif
-            //query.values = new uint[] { 36, 59, 98, 10, 42, 177, 89, 17, 99, 45, 13, 67, 167, 43, 81, 26 };//1008.tif,
-            //query.values = new uint[] { 127, 143, 146, 76, 115, 227, 342, 60, 297, 147, 113, 39, 228, 112, 101, 121 }; // 104.tif, 
-
-            query.values = new uint[] { 0, 0, 0, 0, 95, 41, 0, 0, 263, 35, 0, 2, 101, 218, 139, 5, 0, 0, 0, 0, 49, 44, 54, 8, 200, 7, 7, 21, 125, 44, 162, 38, 0, 0, 0, 0, 72, 0, 41, 68, 167, 0, 2, 96, 46, 11, 117, 71, 0, 0, 0, 0, 80, 0, 0, 50, 154, 0, 0, 123, 15, 4, 11, 85 };
-
-            //query.values = new uint[]{4150645879, 55876, 5, 378477, 134742016}; // 0033.tiff
-            //query.values = new uint[] { 0, 73, 76, 1, 54, 44, 1, 9, 161, 0, 0, 2, 115, 0, 0, 2, 0, 207, 41, 0, 45, 140, 78, 1, 150, 4, 
-            //    6, 6, 139, 0, 0, 6, 0, 13, 116, 6, 32, 6, 195, 7, 145, 0, 11, 21, 142, 0, 1, 2, 0, 0, 152, 31, 21, 0, 130, 95, 139, 0, 
-            //    4, 54, 116, 0, 1, 6 };
-
-            // Step 3. Find a random point in the database
-            byte[] leafPage = new byte[pageSize];
-            fl.Read(leafPage, 0, pageSize);
-            LeafPage p = LeafPage.ParseFromBytes(leafPage);
-
-            best = new BestMatch[numNeighbors];
-            for (int i = 0; i < numNeighbors; i++)
+            MyResultSet set = new MyResultSet();
+            if (queryfile != null)
             {
-                best[i].point = new DataPoint(numFeatures);
-                best[i].point.fileId = p.values[0].fileId;
-                best[i].point.values = p.values[0].values;
-                best[i].distance = best[i].point.distance(query);
-            }
-
-            // Step 4. recurse over the tree, trying to find candidate nodes to expand
-            recurseFind(query, level2, fs, fl);
-
-            foreach (var item in best)
-            {
-                Console.Write(item.point.fileId + "\t\t: " );
-                for (int j = 0; j < numFeatures; j++)
+                string[] querystrings = File.ReadAllLines(queryfile);
+                foreach (string szQuery in querystrings)
                 {
-                    //Console.Write(", " + item.point.values[j]);
+                    // reset the recursion breaker
+                    pointers.Clear();
+
+                    string[] queryterms = szQuery.Split(new char[] { ',' }, StringSplitOptions.None);
+                    int numFeatures = queryterms.Length-1;
+                    DataPoint query = new DataPoint(numFeatures);
+                    for (int i = 0; i < numFeatures; i++)
+                    {
+                        query.values[i] = uint.Parse(queryterms[i+1]); // avoid the filename
+                    }
+
+                    #region Sample queries
+                    //query.values = new uint[]{ 0, 0, 5277, 5414848, 0 }; // 1.1.02.tiff
+                    //query.values = new uint[] { 201330451, 0, 15444, 2180706326, 138805416 };//4.1.01.tiff,
+                    //query.values = new uint[] { 0, 63080, 1611, 423413, 143130760 };//1.4.10.tiff,
+                    //query.values = new uint[] { 1266436991, 0, 138795, 392952608, 138805928 };//7.2.01
+                    //query.values = new uint[] { 336, 96, 315, 83, 119, 149, 339, 26, 331, 82, 99, 43, 167, 85, 154, 36 }; // 1002.tif,
+                    //query.values = new uint[] { 82, 4, 37, 5, 69, 0, 51, 13, 20, 29, 1, 402, 39, 1, 40, 18 };//1042.tif
+                    //query.values = new uint[] { 36, 59, 98, 10, 42, 177, 89, 17, 99, 45, 13, 67, 167, 43, 81, 26 };//1008.tif,
+                    //query.values = new uint[] { 127, 143, 146, 76, 115, 227, 342, 60, 297, 147, 113, 39, 228, 112, 101, 121 }; // 104.tif, 
+                    //query.values = new uint[] { 0, 0, 0, 0, 95, 41, 0, 0, 263, 35, 0, 2, 101, 218, 139, 5, 0, 0, 0, 0, 49, 44, 54, 8, 200, 7, 7, 21, 125, 44, 162, 38, 0, 0, 0, 0, 72, 0, 41, 68, 167, 0, 2, 96, 46, 11, 117, 71, 0, 0, 0, 0, 80, 0, 0, 50, 154, 0, 0, 123, 15, 4, 11, 85 };
+                    //query.values = new uint[]{4150645879, 55876, 5, 378477, 134742016}; // 0033.tiff
+                    //query.values = new uint[] { 0, 73, 76, 1, 54, 44, 1, 9, 161, 0, 0, 2, 115, 0, 0, 2, 0, 207, 41, 0, 45, 140, 78, 1, 150, 4, 
+                    //    6, 6, 139, 0, 0, 6, 0, 13, 116, 6, 32, 6, 195, 7, 145, 0, 11, 21, 142, 0, 1, 2, 0, 0, 152, 31, 21, 0, 130, 95, 139, 0, 
+                    //    4, 54, 116, 0, 1, 6 };
+
+                    #endregion
+
+                    // Step 3. Find a random point in the database
+                    byte[] leafPage = new byte[pageSize];
+                    fl.Read(leafPage, 0, pageSize);
+                    LeafPage p = LeafPage.ParseFromBytes(leafPage);
+
+                    best = new BestMatch[numNeighbors];
+                    for (int i = 0; i < numNeighbors; i++)
+                    {
+                        best[i].point = new DataPoint(numFeatures);
+                        best[i].point.fileId = p.values[0].fileId;
+                        best[i].point.values = p.values[0].values;
+                        best[i].distance = best[i].point.distance(query);
+                    }
+
+                    // Step 4. recurse over the tree, trying to find candidate nodes to expand
+                    recurseFind(query, root, fs, fl);
+
+                    foreach (var item in best)
+                    {
+                        set.AddTo(item.point.fileId, item.distance);
+                    }
+
+                    // count the number of pages expanded
+                    ActualPagesAccessed  += pointers.Count;
+                    NumQueryAccesses++;
                 }
-                Console.WriteLine();
             }
+
+            List<string> outputfilenames = new List<string>();
+            foreach (var item in set)
+            {
+                Console.WriteLine("File: {0}: \t {1}", item.filename, item.score);
+                outputfilenames.Add(item.filename);
+            }
+
+            File.WriteAllLines(outputfile, outputfilenames.ToArray());
+            File.WriteAllText("pagestatistics.txt", "Percentage: " + ((100.0 * ActualPagesAccessed) / ((double)TotalNumSectors * NumQueryAccesses)).ToString("F4"));
+
+            //foreach (var item in best)
+            //{
+            //    Console.Write(item.point.fileId + "\t\t: " );
+            //    for (int j = 0; j < numFeatures; j++)
+            //    {
+            //        //Console.Write(", " + item.point.values[j]);
+            //    }
+            //    Console.WriteLine();
+            //}
 
             // Step f. Cleanup
             fs.Close();
             fl.Close();
         }
 
-        static List<int> pointers = new List<int>();
 
         private static void recurseFind(DataPoint query, InternalTreePage page, FileStream fs, FileStream fl)
         {

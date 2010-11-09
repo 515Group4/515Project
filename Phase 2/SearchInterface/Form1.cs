@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 using System.IO;
+using System.Diagnostics;
 
 namespace SearchInterface
 {
@@ -17,7 +18,7 @@ namespace SearchInterface
             InitializeComponent();
         }
 
-        const string imageFolder = @"G:\Media\Images";
+        const string imageFolder = @"C:\Data\Datasets\t2";
         const string resultsFile = "results.txt";
         const string htmlFile = "a.html";
 
@@ -39,6 +40,47 @@ namespace SearchInterface
 
         private void button3_Click(object sender, EventArgs e)
         {
+            // Step 1: the index parameters
+            string indexFolder = Path.GetDirectoryName(textBox1.Text);
+            string[] meta = File.ReadAllLines(Path.Combine(indexFolder, "meta.txt"));
+
+            bool useSift        = (meta[0] == "sift");
+            int numFeatures     = int.Parse(meta[1]);
+            int numShapes       = int.Parse(meta[2]);
+            int pageSize        = int.Parse(meta[3]);
+
+            // Step 2: create the query file
+            if (useSift)
+            {
+                Process querymaker = new Process();
+                if (File.Exists("sift\\output.txt")) { File.Delete("sift\\output.txt"); }
+                if (File.Exists("query.txt")) { File.Delete("query.txt"); }
+                querymaker.StartInfo.WorkingDirectory = Path.Combine(Application.StartupPath, "sift");
+                querymaker.StartInfo.FileName = "SiftExtractor.exe";
+                querymaker.StartInfo.Arguments = string.Format("{1} {2} -F \"{0}\"", textBox2.Text, numFeatures, numShapes);
+                querymaker.StartInfo.CreateNoWindow = true;
+                querymaker.Start();
+                querymaker.WaitForExit();
+                File.Move("sift\\output.txt", "query.txt");
+            }
+            else
+            {
+                Process querymaker = new Process();
+                querymaker.StartInfo.FileName = "ShapeIndexer.exe";
+                querymaker.StartInfo.Arguments = string.Format("-o query.txt -l {1} -k {2} -F \"{0}\"", textBox2.Text, numFeatures, numShapes);
+                querymaker.StartInfo.CreateNoWindow = true;
+                querymaker.Start();
+                querymaker.WaitForExit();
+            }
+
+            // Step 3: run the query
+            Process queryRunner = new Process();
+            queryRunner.StartInfo.FileName = "NearestNeighbor.exe";
+            queryRunner.StartInfo.Arguments = string.Format("{0} {1} {2}", indexFolder, "query.txt", pageSize);
+            queryRunner.StartInfo.CreateNoWindow = true;
+            queryRunner.Start();
+            queryRunner.WaitForExit();
+
             string[] filenames = File.ReadAllLines(resultsFile);
             StreamWriter wr = new StreamWriter(htmlFile);
             wr.WriteLine(
