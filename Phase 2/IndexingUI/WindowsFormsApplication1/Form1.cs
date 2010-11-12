@@ -43,27 +43,28 @@ namespace IndexingUI
 
             Process indexer = new Process();
             if (File.Exists("sift\\output.txt")) { File.Delete("sift\\output.txt"); }
-            if (File.Exists("query.txt")) { File.Delete("query.txt"); }
+            if (File.Exists("output.txt")) { File.Delete("output.txt"); }
             indexer.StartInfo.FileName = alg;
             indexer.StartInfo.Arguments = flags;
             indexer.StartInfo.CreateNoWindow = true;
             indexer.Start();
             indexer.WaitForExit();
             Directory.CreateDirectory(targetDir);
-            if(shape){
-                if(File.Exists("query.txt")){
-                    File.Move("query.txt", targetDir + "1.txt");
-                }else{
-                    MessageBox.Show("Error, query.txt doesn't exist");
-                    //Console.WriteLine("Error, query.txt doesn't exist");
-                }
+         
+            if(File.Exists("output.txt")){
+                File.Move("output.txt", targetDir + "1.txt");
             }else{
-                if(File.Exists("sift\\output.txt")){
-                    File.Move("sift\\output.txt", targetDir + "1.txt");
-                }else{
-                    MessageBox.Show("Error, output.txt doesn't exist");
-                    //Console.WriteLine("Error, output.txt doesn't exist");
-                }
+                MessageBox.Show("Error, query.txt doesn't exist");
+                //Console.WriteLine("Error, query.txt doesn't exist");
+            }
+
+            if(File.Exists("c:\\Preetika\\MWD\\ProjectCode\\STR\\1.txt")){
+                Process str = new Process();
+                str.StartInfo.FileName = "STR.exe";
+                str.StartInfo.CreateNoWindow = true;
+                str.Start();
+            }else{
+                MessageBox.Show("1.txt was not created, STR not called");
             }
         }
 
