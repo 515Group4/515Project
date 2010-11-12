@@ -53,15 +53,25 @@ namespace SearchInterface
             if (useSift)
             {
                 Process querymaker = new Process();
-                if (File.Exists("sift\\output.txt")) { File.Delete("sift\\output.txt"); }
-                if (File.Exists("query.txt")) { File.Delete("query.txt"); }
-                querymaker.StartInfo.WorkingDirectory = Path.Combine(Application.StartupPath, "sift");
-                querymaker.StartInfo.FileName = "SiftExtractor.exe";
-                querymaker.StartInfo.Arguments = string.Format("{1} {2} -F \"{0}\"", textBox2.Text, numFeatures, numShapes);
-                querymaker.StartInfo.CreateNoWindow = true;
-                querymaker.Start();
-                querymaker.WaitForExit();
-                File.Move("sift\\output.txt", "query.txt");
+                //if (!Directory.Exists("pictemp")) { Directory.CreateDirectory("pictemp"); }
+                //if (File.Exists("pictemp\\image.tif")) { File.Delete("pictemp\\image.tif"); }
+                //File.Copy(textBox2.Text, "pictemp\\image.tif");
+
+                //if (File.Exists("sift\\output.txt")) { File.Delete("sift\\output.txt"); }
+                //if (File.Exists("query.txt")) { File.Delete("query.txt"); }
+
+                //querymaker.StartInfo.WorkingDirectory = Path.Combine(Application.StartupPath, "sift");
+                //querymaker.StartInfo.FileName = "sift\\SiftExtractor.exe";
+                //querymaker.StartInfo.Arguments = string.Format("{1} {2} -F {0}", textBox2.Text, numFeatures, numShapes);
+                //querymaker.StartInfo.CreateNoWindow = true;
+                //querymaker.StartInfo.UseShellExecute = false;
+                //querymaker.StartInfo.RedirectStandardOutput = true;
+                //querymaker.Start();
+                string output = File.ReadAllText("sift\\q.txt"); //querymaker.StandardOutput.ReadToEnd();
+                output = output.Substring(output.IndexOf("search"));
+                File.WriteAllText("query.txt", output);
+                //querymaker.WaitForExit();
+                ////File.Copy("sift\\output.txt", "query.txt", true);
             }
             else
             {
