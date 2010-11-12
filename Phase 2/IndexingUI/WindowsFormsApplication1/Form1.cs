@@ -41,8 +41,10 @@ namespace IndexingUI
             };
             // MessageBox.Show("command: "+alg+" "+flags);
 
+            string siftFileName = string.Format("output-k{0}-l{1}.txt", k, l);
+
             Process indexer = new Process();
-            if (File.Exists("sift\\output.txt")) { File.Delete("sift\\output.txt"); }
+            if (File.Exists(siftFileName)) { File.Delete(siftFileName); }
             if (File.Exists("output.txt")) { File.Delete("output.txt"); }
             indexer.StartInfo.FileName = alg;
             indexer.StartInfo.Arguments = flags;
@@ -51,8 +53,9 @@ namespace IndexingUI
             indexer.WaitForExit();
             Directory.CreateDirectory(targetDir);
 
-            if(File.Exists("output.txt") || File.Exists("sift\\output.txt")){
-                String tmp = shape ? "output.txt" : "sift\\output.txt";
+            if (File.Exists("output.txt") || File.Exists(siftFileName))
+            {
+                String tmp = shape ? "output.txt" : siftFileName;
                 File.Copy(tmp, targetDir + "1.txt");
             }else{
                 MessageBox.Show("Error, output.txt doesn't exist");
