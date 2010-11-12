@@ -50,9 +50,10 @@ namespace IndexingUI
             indexer.Start();
             indexer.WaitForExit();
             Directory.CreateDirectory(targetDir);
-         
-            if(File.Exists("output.txt")){
-                File.Move("output.txt", targetDir + "1.txt");
+
+            if(File.Exists("output.txt") || File.Exists("sift\\output.txt")){
+                String tmp = shape ? "output.txt" : "sift\\output.txt";
+                File.Copy(tmp, targetDir + "1.txt");
             }else{
                 MessageBox.Show("Error, output.txt doesn't exist");
                 //Console.WriteLine("Error, output.txt doesn't exist");
