@@ -54,8 +54,8 @@ namespace IndexingUI
             if(File.Exists("output.txt")){
                 File.Move("output.txt", targetDir + "1.txt");
             }else{
-                MessageBox.Show("Error, query.txt doesn't exist");
-                //Console.WriteLine("Error, query.txt doesn't exist");
+                MessageBox.Show("Error, output.txt doesn't exist");
+                //Console.WriteLine("Error, output.txt doesn't exist");
             }
 
             if(File.Exists("c:\\Preetika\\MWD\\ProjectCode\\STR\\1.txt")){
