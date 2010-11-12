@@ -52,7 +52,7 @@ namespace ResizePictures
             {
                 foreach (var filename in files)
                 {
-                    if (filename.EndsWith("Thumbs.db"))
+                    if (filename.EndsWith("Thumbs.db") || filename.EndsWith("desktop.ini"))
                     {
                         continue;
                     }
