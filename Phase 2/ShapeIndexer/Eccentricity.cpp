@@ -54,6 +54,7 @@ double FindEccentricityDescriptor(const PixelPacket *pc, const bool *shapelayer,
 
 
 	//Calculation of Apoapsis and Periapsis
+	//--is this boundarySize necessary?  I don't see it used in this context
 	boundarySize = perimeter(shapelayer, rows, cols, x, y);
 	for(int row = 0; row < imageWidth; row++)
 	{
