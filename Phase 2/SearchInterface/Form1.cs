@@ -16,17 +16,27 @@ namespace SearchInterface
         public Form1()
         {
             InitializeComponent();
+
+            mymarshal = new JsMarshal(this);
+            this.webBrowser1.ObjectForScripting = mymarshal;
         }
 
-        const string imageFolder = @"C:\Data\Datasets\t2";
+        string imageFolder = @"C:\Data\Datasets\t2";
         const string resultsFile = "results.txt";
         const string htmlFile = "a.html";
 
+        public JsMarshal mymarshal = null;
+
+        public void SetStaus(string status)
+        {
+            this.statusbar.Text = status;
+        }
+
         private void button2_Click(object sender, EventArgs e)
         {
-            if (openFileDialog1.ShowDialog(this) == System.Windows.Forms.DialogResult.OK)
+            if (openFileDialog3.ShowDialog(this) == System.Windows.Forms.DialogResult.OK)
             {
-                textBox2.Text = openFileDialog1.FileName;
+                textBox2.Text = openFileDialog3.FileName;
             }
         }
 
@@ -52,26 +62,25 @@ namespace SearchInterface
             // Step 2: create the query file
             if (useSift)
             {
+                if (File.Exists("query.txt")) { File.Delete("query.txt"); }
+                string outfilename = "sift\\output-k" + numShapes + "-l" + numFeatures + ".txt";
+                if (File.Exists(outfilename)) { File.Delete(outfilename); }
+                //if (File.Exists("sift\\test.pgm")) { File.Delete("sift\\test.pgm"); }
+
+                //Process conversion = new Process();
+                //conversion.StartInfo.FileName = "convert.exe";
+                //conversion.StartInfo.Arguments = textBox2.Text + " sift\\test.pgm";
+                //conversion.Start();
+                //conversion.WaitForExit();
+
                 Process querymaker = new Process();
-                //if (!Directory.Exists("pictemp")) { Directory.CreateDirectory("pictemp"); }
-                //if (File.Exists("pictemp\\image.tif")) { File.Delete("pictemp\\image.tif"); }
-                //File.Copy(textBox2.Text, "pictemp\\image.tif");
-
-                //if (File.Exists("sift\\output.txt")) { File.Delete("sift\\output.txt"); }
-                //if (File.Exists("query.txt")) { File.Delete("query.txt"); }
-
-                //querymaker.StartInfo.WorkingDirectory = Path.Combine(Application.StartupPath, "sift");
-                //querymaker.StartInfo.FileName = "sift\\SiftExtractor.exe";
-                //querymaker.StartInfo.Arguments = string.Format("{1} {2} -F {0}", textBox2.Text, numFeatures, numShapes);
-                //querymaker.StartInfo.CreateNoWindow = true;
-                //querymaker.StartInfo.UseShellExecute = false;
-                //querymaker.StartInfo.RedirectStandardOutput = true;
-                //querymaker.Start();
-                string output = File.ReadAllText("sift\\q.txt"); //querymaker.StandardOutput.ReadToEnd();
-                output = output.Substring(output.IndexOf("search"));
-                File.WriteAllText("query.txt", output);
-                //querymaker.WaitForExit();
-                ////File.Copy("sift\\output.txt", "query.txt", true);
+                querymaker.StartInfo.WorkingDirectory = Path.Combine(Application.StartupPath, "sift");
+                querymaker.StartInfo.FileName = "SiftExtractor.exe";
+                querymaker.StartInfo.Arguments = string.Format("{1} {2} -F {0}", textBox2.Text, numShapes, numFeatures);
+                querymaker.StartInfo.CreateNoWindow = true;
+                querymaker.Start();
+                querymaker.WaitForExit();
+                File.Copy(outfilename, "query.txt", true);
             }
             else
             {
@@ -93,6 +102,11 @@ namespace SearchInterface
 
             string[] filenames = File.ReadAllLines(resultsFile);
             StreamWriter wr = new StreamWriter(htmlFile);
+
+            if (Directory.Exists(textBox3.Text))
+            {
+                imageFolder = textBox3.Text;
+            }
             wr.WriteLine(
 @"<html>
     <head>
@@ -100,14 +114,24 @@ namespace SearchInterface
         <style type=text/css>
 body{font-family: sans-serif; font-size: 14px; }
 .result{ display: inline; width: 120px; }
+.rate{margin: 0; padding: 0; border-width: 0; height:25px;}
+.resimg{max-height: 120px; margin-top: 2em;}
+.like{background-image: url('res/like-normal.png'); width:55px;}
+.like:hover{background-image: url('res/like-hot.png'); width:55px;}
+.hate{background-image: url('res/hate-normal.png'); width:29px;}
+.hate:hover{background-image: url('res/hate-hot.png'); width:29px;}
         </style>
     </head>
     <body>");
 
-            for (int i = 0; i < filenames.Length; i++)
+            for (int i = 0; i < filenames.Length && i<numericUpDown1.Value; i++)
             {
-                wr.WriteLine("<div class=\"result\"><div><img src=\"" + Path.Combine(imageFolder, filenames[i])
-                    + "\" width=\"100\" /></div><div>" + filenames[i] + "</div></div>");
+                wr.WriteLine("<div class=\"result\">");
+                wr.WriteLine("\t<div><img class=\"resimg\" src=\"" + Path.Combine(imageFolder, filenames[i]) + "\" width=\"100\" /></div>");
+                wr.WriteLine("\t<div>" + filenames[i] + "</div>");
+                wr.WriteLine("\t<div><a class=\"rate like\" href=\"javascript:window.external.LikeButtonPressed('"+filenames[i]+"');\"></a>");
+                wr.WriteLine("<a class=\"rate hate\" href=\"javascript:window.external.HateButtonPressed('" + filenames[i] + "');\"></a></div>");
+                wr.WriteLine("</div>");
             }
 
             wr.WriteLine("</body></html>");
@@ -115,6 +139,14 @@ body{font-family: sans-serif; font-size: 14px; }
             wr.Close();
 
             webBrowser1.Navigate(Path.Combine(Application.StartupPath, htmlFile));
+        }
+
+        private void button4_Click(object sender, EventArgs e)
+        {
+            if (openFileDialog2.ShowDialog(this) == System.Windows.Forms.DialogResult.OK)
+            {
+                textBox3.Text = Path.GetDirectoryName(openFileDialog2.FileName);
+            }
         }
 
         
