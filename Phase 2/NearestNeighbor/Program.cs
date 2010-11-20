@@ -331,11 +331,21 @@ namespace NearestNeighbor
                 }
             }
 
+            set.Sort();
+
             List<string> outputfilenames = new List<string>();
             foreach (var item in set)
             {
                 Console.WriteLine("File: {0}: \t {1}", item.filename, item.score);
-                outputfilenames.Add(item.filename);
+                int filename = 0;
+                if (int.TryParse(item.filename, out filename))
+                {
+                    outputfilenames.Add(filename + ".tif");
+                }
+                else
+                {
+                    outputfilenames.Add(item.filename);
+                }
             }
 
             File.WriteAllLines(outputfile, outputfilenames.ToArray());
