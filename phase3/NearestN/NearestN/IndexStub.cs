@@ -15,4 +15,6 @@ namespace NearestN
         // Returns the next matched file (which I believe we represent as integers)
         int getNextMatch();
     }
+
+
 }
