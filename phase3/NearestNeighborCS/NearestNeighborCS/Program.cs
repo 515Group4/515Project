@@ -229,15 +229,15 @@ namespace NearestNeighbor
     // Added by Preetika Tyagi - ends
     class Program1
     {
-        static string folder = @"E:\CG\NearestNeighborCS\NearestNeighborCS\bin\Debug\";
+        static string folder = @".";
         static int pageSize = 420;
         static string treeFileName = "STRTree.txt";
         static string leafFileName = "STRLeaf.txt";
         public static int numNeighbors = 10;
         static int numPagesAccessed = 0;
         public static BestMatch[] best;
-        static string queryfile = @"E:\CG\NearestNeighborCS\NearestNeighborCS\bin\Debug\query.txt";
-        static string outputfile = @"E:\CG\NearestNeighborCS\NearestNeighborCS\bin\Debug\results.txt";
+        static string queryfile = @"query.txt";
+        static string outputfile = @"results.txt";
         static List<int> pointers = new List<int>();
         public static List<PrunedEntry> prunedNodeQueue = new List<PrunedEntry>(); // Added by Preetika Tyagi
         public static MyResultSet ResultSet = new MyResultSet();
@@ -542,7 +542,8 @@ namespace NearestNeighbor
             List<PrunedEntry> retQ = Program1.callMe();
             foreach (var item in retQ)
             {
-                Console.WriteLine("{0} = {1}",item.pruneDistance, item.nodePointer);
+                // commented out by Rick
+                //Console.WriteLine("{0} = {1}",item.pruneDistance, item.nodePointer);
             }
             for (int i = 0; i < numOfNN; i++)
             {
@@ -661,6 +662,7 @@ namespace NearestNeighbor
             // NearestNeighbour [indexFolder queryfile pagesize=6000 outputfile=results.txt]
 
             MyResultSet resultSet = getFirst(10);
+            /*getNext(10);
             getNext(10);
             getNext(10);
             getNext(10);
@@ -669,8 +671,7 @@ namespace NearestNeighbor
             getNext(10);
             getNext(10);
             getNext(10);
-            getNext(10);
-            getNext(10);
+            getNext(10);*/
         }
     }
 }
