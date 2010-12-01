@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Collections;
 
+using NearestNeighbor;
+
 namespace NearestN
 {
     class NearestN 
@@ -11,6 +13,8 @@ namespace NearestN
 
         static void Main(string[] args)
         {
+            // would love to do a
+            // Program1 pg1 = new Program1(); here
 
             // All this is just stub garbage, ignore...
             int[] f1_names = { 1, 5, 7, 2, 9, 11, 3, 4, 8, 6, 10 };

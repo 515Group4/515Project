@@ -227,7 +227,7 @@ namespace NearestNeighbor
         }
     }
     // Added by Preetika Tyagi - ends
-    class Program1
+    public class Program1
     {
         static string folder = @".";
         static int pageSize = 420;
@@ -247,6 +247,15 @@ namespace NearestNeighbor
         static long ActualPagesAccessed = 0;//Moved here by Rishabh
         static long NumQueryAccesses = 0;//Moved here by Rishabh
 
+        public Program1()
+        {
+
+        }
+
+        public void setFolder(String s)
+        {
+            folder = s;
+        }
 
         static int findTheRootOffset(FileStream fs)
         {
