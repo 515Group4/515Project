@@ -15,14 +15,13 @@ namespace NearestNeighbor
             values = new uint[numFeatures];
         }
 
-        public double distance(DataPoint other)
+        public double distance(DataPoint other, List<double> weights)
         {
             double d = 0;
             for (int i = 0; i < values.Length; i++)
 			{
-                d += (this.values[i] - other.values[i]) * (this.values[i] - other.values[i]);
+                d += weights[i] * ((this.values[i] - other.values[i]) * (this.values[i] - other.values[i]));
 			}
-
             return Math.Sqrt(d);
         }
 
@@ -71,7 +70,9 @@ namespace NearestNeighbor
         public uint[] minValues;
         public uint[] maxValues;
         public int pointer;
-        public static List<double> weightFactor = new List<double>(); // Added by Preetika Tyagi
+        
+        //Moving this to NearestNeigborImpl class for reasons, //Rishabh S
+        //public static List<double> weightFactor = new List<double>(); // Added by Preetika Tyagi
 
         public MBR(int numFeatures)
         {
@@ -104,7 +105,7 @@ namespace NearestNeighbor
         /// </summary>
         /// <param name="p"></param>
         /// <returns></returns>
-        public double MinDistance(DataPoint p)
+        public double MinDistance(DataPoint p, List<double> weightFactor)
         {
             double d = 0;
             for (int i = 0; i < minValues.Length; i++)
@@ -114,7 +115,7 @@ namespace NearestNeighbor
                 else if (p.values[i] > this.maxValues[i]) { ri = this.maxValues[i]; }
                 else { ri = p.values[i]; }
 
-                d += weightFactor[i] * (p.values[i] - ri) * (p.values[i] - ri); // Changed by Preetika Tyagi
+                d += weightFactor[i] * ((p.values[i] - ri) * (p.values[i] - ri)); // Changed by Preetika Tyagi
             }
 
             return Math.Sqrt(d);
@@ -202,7 +203,8 @@ namespace NearestNeighbor
 
         public bool Equals(MyResultEntry other)
         {
-            return this.filename == other.filename;
+            //return ((this.filename == other.filename) && (this.score == other.score));
+            return (this.filename == other.filename);
         }
     }
 
@@ -227,35 +229,31 @@ namespace NearestNeighbor
         }
     }
     // Added by Preetika Tyagi - ends
-    public class Program1
+    class NearestNeighbor_Impl
     {
-        static string folder = @".";
+        private string folder = @"E:\CG\NearestNeighborCS\NearestNeighborCS\bin\Debug\";
         static int pageSize = 420;
         static string treeFileName = "STRTree.txt";
         static string leafFileName = "STRLeaf.txt";
         public static int numNeighbors = 10;
-        static int numPagesAccessed = 0;
-        public static BestMatch[] best;
-        static string queryfile = @"query.txt";
-        static string outputfile = @"results.txt";
-        static List<int> pointers = new List<int>();
-        public static List<PrunedEntry> prunedNodeQueue = new List<PrunedEntry>(); // Added by Preetika Tyagi
-        public static MyResultSet ResultSet = new MyResultSet();
-        public static List<DataPoint> QueryPoints = new List<DataPoint>();//Added by Rishabh
-        static FileStream fs = new FileStream(Path.Combine(folder, treeFileName), FileMode.Open);//Moved here by Rishabh
-        static FileStream fl = new FileStream(Path.Combine(folder, leafFileName), FileMode.Open);//Moved here by Rishabh
-        static long ActualPagesAccessed = 0;//Moved here by Rishabh
-        static long NumQueryAccesses = 0;//Moved here by Rishabh
+        int numPagesAccessed = 0;
+        public BestMatch[] best;
+        string queryfile = @"E:\CG\NearestNeighborCS\NearestNeighborCS\bin\Debug\query.txt";
+        static string outputfile = @"results.txt"; // made this relative -- Rick
+        List<int> pointers = new List<int>();
+        public List<PrunedEntry> prunedNodeQueue = new List<PrunedEntry>(); // Added by Preetika Tyagi
+        public MyResultSet ResultSet = new MyResultSet();
+        public  List<DataPoint> QueryPoints = new List<DataPoint>();//Added by Rishabh
+        private FileStream fl;
+        private FileStream fs;
+        //FileStream fs = new FileStream(Path.Combine(folder, treeFileName), FileMode.Open);//Moved here by Rishabh
+        //FileStream fl = new FileStream(Path.Combine(folder, leafFileName), FileMode.Open);//Moved here by Rishabh
+        long ActualPagesAccessed = 0;//Moved here by Rishabh
+        long NumQueryAccesses = 0;//Moved here by Rishabh
 
-        public Program1()
-        {
-
-        }
-
-        public void setFolder(String s)
-        {
-            folder = s;
-        }
+        //Moved from MBR class
+        List<double> weightFactor = new List<double>(); // Added by Preetika Tyagi
+        bool isWeightFactorSet = false;
 
         static int findTheRootOffset(FileStream fs)
         {
@@ -272,10 +270,15 @@ namespace NearestNeighbor
             return offsetFromEnd;
         }
 
-        public static List<PrunedEntry> callMe()
+        public void callMe()
         {
+            initializeFolders(); // added by Rick
             prunedNodeQueue.Clear(); // Added by Preetika Tyagi
             QueryPoints.Clear();//// Added by Rishabh
+            best = null;
+            ResultSet.Clear();
+            ActualPagesAccessed = 0;
+            NumQueryAccesses = 0;
            
             // Step 1. Find the root node
             
@@ -328,6 +331,18 @@ namespace NearestNeighbor
 
                     #endregion
 
+                    //Added by Rishabh - Begin
+                    //Setting the weightFactor. This will be set only once in the beginning 
+                    //and once it has been set, it is expected from user to reset it manually and only after that he can call this function...
+                    if (!isWeightFactorSet)
+                    {
+                        //Initially all the features will have a weightFactor of 1
+                        for(int i=0;i<numFeatures;i++)
+                            weightFactor.Add(1.0);
+                        isWeightFactorSet = true;
+                    }
+
+
                     // Step 3. Find a random point in the database
                     byte[] leafPage = new byte[pageSize];
                     fl.Read(leafPage, 0, pageSize);
@@ -340,7 +355,7 @@ namespace NearestNeighbor
                         best[i].point = new DataPoint(numFeatures);
                         best[i].point.fileId = p.values[0].fileId;
                         best[i].point.values = p.values[0].values;
-                        best[i].distance = best[i].point.distance(query);
+                        best[i].distance = best[i].point.distance(query,weightFactor);
                     }
 
                     // Step 4. recurse over the tree, trying to find candidate nodes to expand
@@ -364,7 +379,7 @@ namespace NearestNeighbor
             List<string> outputfilenames = new List<string>();
             foreach (var item in ResultSet)
             {
-                Console.WriteLine("File: {0}: \t {1}", item.filename, item.score);
+//                Console.WriteLine("File: {0}: \t {1}", item.filename, item.score);
                 int filename = 0;
                 if (int.TryParse(item.filename, out filename))
                 {
@@ -396,16 +411,16 @@ namespace NearestNeighbor
             fl.Close();
              */
             prunedNodeQueue.Sort(); // Added by Preetika Tyagi
-            return prunedNodeQueue; // Added by Preetika Tyagi
+//            return prunedNodeQueue; // Added by Preetika Tyagi
         }
-        public static void close()
+        public void close()
         {
             fs.Close();
             fl.Close();
         }
 
         //Added by Rishabh
-        public static void findRecursivelyInPruned(DataPoint query, PrunedEntry entry)
+        public void findRecursivelyInPruned(DataPoint query, PrunedEntry entry)
         {
             fs.Seek(entry.nodePointer, SeekOrigin.Begin);
             byte[] intPage = new byte[pageSize];
@@ -430,7 +445,7 @@ namespace NearestNeighbor
             prunedNodeQueue.Sort();
         }
 
-        public static void insertLeafInPrunedList(string fileID, double distance)
+        public void insertLeafInPrunedList(string fileID, double distance)
         {
             PrunedEntry prunEntry = new PrunedEntry();
             prunEntry.nodePointer = -1;
@@ -443,21 +458,21 @@ namespace NearestNeighbor
             }
         }
 
-        static void recurseFind(DataPoint query, InternalTreePage page, FileStream fs, FileStream fl)
+        void recurseFind(DataPoint query, InternalTreePage page, FileStream fs, FileStream fl)
         {
             foreach (var node in page.rectangles)
             {
                 // Added by Preetika Tyagi: begins
-                if (node.MinDistance(query) > best[numNeighbors - 1].distance)
+                if (node.MinDistance(query,weightFactor) > best[numNeighbors - 1].distance)
                 {
-                    PrunedEntry objEntry = new PrunedEntry() { pruneDistance = node.MinDistance(query) , nodePointer = Math.Abs(node.pointer)};
+                    PrunedEntry objEntry = new PrunedEntry() { pruneDistance = node.MinDistance(query, weightFactor), nodePointer = Math.Abs(node.pointer) };
                     if(!prunedNodeQueue.Contains(objEntry))
                     {
                         prunedNodeQueue.Add(objEntry);
                     }
                 }
                 // Added by Preetika Tyagi: ends
-                if (node.MinDistance(query) <= best[numNeighbors-1].distance)
+                if (node.MinDistance(query,weightFactor) <= best[numNeighbors-1].distance)
                 {
                     if (pointers.Contains(node.pointer))
                     {
@@ -480,7 +495,7 @@ namespace NearestNeighbor
                         // go through all the elements in p and check which one is the closest
                         foreach (var item in p.values)
                         {
-                            var bestDist_t = item.distance(query);
+                            var bestDist_t = item.distance(query, weightFactor);
                             if (bestDist_t < best[numNeighbors - 1].distance)
                             {
                                 List<BestMatch> ll = new List<BestMatch>();
@@ -531,93 +546,144 @@ namespace NearestNeighbor
             }
         }
 
+        //the index starts from 0.
+        public int setFeatureWeight(int index, double newWeight)
+        {
+            if (index > weightFactor.Count)
+            {
+                Console.WriteLine("Feature index out of bound.");
+                return 1;
+            }
+           
+            weightFactor[index] = newWeight;
+            return 0;
+        }
+
+        public void setQueryFile(string newQueryFile)
+        {
+            queryfile = newQueryFile;
+        }
+
+        public void setFolderDir(string newFolderDir)
+        {
+            folder = newFolderDir;
+        }
+        private void initializeFolders()
+        {
+            //FileStream fs = new FileStream(Path.Combine(folder, treeFileName), FileMode.Open);//Moved here by Rishabh
+            //FileStream fl = new FileStream(Path.Combine(folder, leafFileName), FileMode.Open);//Moved here by Rishabh
+            if (fs == null)
+            {
+                fs = new FileStream(Path.Combine(folder, treeFileName), FileMode.Open);
+            }
+            if (fl == null)
+            {
+                fl = new FileStream(Path.Combine(folder, leafFileName), FileMode.Open);
+            }
+        }
     }
 
     class NearestNeighbor
     {
         private List<PrunedEntry> PrunedNodeList = new List<PrunedEntry>();
-        static int resultIndex = 0;
-        static int tempCounter = 0;//will be removed. just for the logging purpose
+        int resultIndex = 0;
+        int tempCounter = 0;//will be removed. just for the logging purpose
+        NearestNeighbor_Impl nnImplObj = new NearestNeighbor_Impl();
 
+        public void setQueryFile(string newQueryFile)
+        {
+            nnImplObj.setQueryFile(newQueryFile);
+        }
+        public void setFolderDir(string newFolderDir)
+        {
+            nnImplObj.setFolderDir(newFolderDir);
+        }
+        public int setFeatureWeight(int index, double newWeight)
+        {
+            return nnImplObj.setFeatureWeight(index, newWeight);
+        }
 
-        static MyResultSet getFirst(int numOfNN)
+        
+
+        // Made this public -- Rick
+        public MyResultSet getFirst(int numOfNN)
         {
             MyResultSet resultSet = new MyResultSet();
-            MBR.weightFactor.Add(1);
-            MBR.weightFactor.Add(2);
-            MBR.weightFactor.Add(3);
-            MBR.weightFactor.Add(4);
-            MBR.weightFactor.Add(5);
-            List<PrunedEntry> retQ = Program1.callMe();
-            foreach (var item in retQ)
+            nnImplObj.callMe();
+            resultIndex = 0;
+
+            while (nnImplObj.ResultSet.Count < numOfNN)
             {
-                // commented out by Rick
-                //Console.WriteLine("{0} = {1}",item.pruneDistance, item.nodePointer);
+                getNext(numOfNN);
+                resultIndex = 0;
             }
+
             for (int i = 0; i < numOfNN; i++)
             {
-                resultSet.Add(Program1.ResultSet[i]);
+                resultSet.Add(nnImplObj.ResultSet[i]);
             }
             resultIndex = numOfNN;
 
             writeToFile(resultSet);
             return resultSet;
         }
-        static MyResultSet getNext(int numberOfNode)
+        
+        // Made this public -- Rick
+        public MyResultSet getNext(int numberOfNode)
         {
             MyResultSet resultSet = new MyResultSet();
             bool isCandidateNodeSet = false;
-            if ((resultIndex + numberOfNode) > Program1.ResultSet.Count)
+            if ((resultIndex + numberOfNode) > nnImplObj.ResultSet.Count)
             {
-                    for (int i = 0; i < Program1.numNeighbors; i++)
+                    for (int i = 0; i < NearestNeighbor_Impl.numNeighbors; i++)
                     {
-                        Program1.best[i].distance = Double.MaxValue;
-                        Program1.best[i].point.fileId = "";
-                        Program1.best[i].point.values = null;
+                        nnImplObj.best[i].distance = Double.MaxValue;
+                        nnImplObj.best[i].point.fileId = "";
+                        nnImplObj.best[i].point.values = null;
                     }
-                while ((Program1.ResultSet.Count < (resultIndex + numberOfNode)) && (Program1.prunedNodeQueue.Count != 0))
+                while ((nnImplObj.ResultSet.Count < (resultIndex + numberOfNode)) && (nnImplObj.prunedNodeQueue.Count != 0))
                 {
-                    if (Program1.prunedNodeQueue[0].isLeaf)
+                    if (nnImplObj.prunedNodeQueue[0].isLeaf)
                     {
                         List<BestMatch> ll = new List<BestMatch>();
                         DataPoint item = new DataPoint(1);
-                        item.fileId = Program1.prunedNodeQueue[0].fileID;
+                        item.fileId = nnImplObj.prunedNodeQueue[0].fileID;
 
-                        ll.AddRange(Program1.best);
-                        ll.Add(new BestMatch() { distance = Program1.prunedNodeQueue[0].pruneDistance, point = item });
+                        ll.AddRange(nnImplObj.best);
+                        ll.Add(new BestMatch() { distance = nnImplObj.prunedNodeQueue[0].pruneDistance, point = item });
                         ll.Sort();
 
-                        BestMatch prunedBest = ll[Program1.numNeighbors];
+                        BestMatch prunedBest = ll[NearestNeighbor_Impl.numNeighbors];
                         
-                        ll.RemoveAt(Program1.numNeighbors);
-                        Program1.best = ll.ToArray();
-                        Program1.prunedNodeQueue.RemoveAt(0);
+                        ll.RemoveAt(NearestNeighbor_Impl.numNeighbors);
+                        nnImplObj.best = ll.ToArray();
+                        nnImplObj.prunedNodeQueue.RemoveAt(0);
                         isCandidateNodeSet = true;
 
                         //reinserting the last node in the prouned list
                         if((prunedBest.distance != Double.MaxValue) && (!(ll.Contains(prunedBest))))
                         {
-                            Program1.insertLeafInPrunedList(prunedBest.point.fileId, prunedBest.distance);
+                            nnImplObj.insertLeafInPrunedList(prunedBest.point.fileId, prunedBest.distance);
                         }
                     }
                     else
                     {
                         if (!isCandidateNodeSet)
                         {
-                            for (int i = 0; i < Program1.numNeighbors; i++)
+                            for (int i = 0; i < NearestNeighbor_Impl.numNeighbors; i++)
                             {
-                                Program1.best[i].distance = Double.MaxValue;
-                                Program1.best[i].point.fileId = "";
-                                Program1.best[i].point.values = null;
+                                nnImplObj.best[i].distance = Double.MaxValue;
+                                nnImplObj.best[i].point.fileId = "";
+                                nnImplObj.best[i].point.values = null;
                             }
                         }
-                        //Program1.recurseFind
-                        PrunedEntry entry = Program1.prunedNodeQueue[0];
-                        for(int i=0;i<Program1.QueryPoints.Count;i++)
+                        //NearestNeighbor_Impl.recurseFind
+                        PrunedEntry entry = nnImplObj.prunedNodeQueue[0];
+                        for(int i=0;i<nnImplObj.QueryPoints.Count;i++)
                         {
-                            Program1.findRecursivelyInPruned(Program1.QueryPoints[i], entry);
+                            nnImplObj.findRecursivelyInPruned(nnImplObj.QueryPoints[i], entry);
                         }
-                        Program1.prunedNodeQueue.RemoveAt(0);
+                        nnImplObj.prunedNodeQueue.RemoveAt(0);
                         isCandidateNodeSet = false;
                     }
                 }
@@ -625,13 +691,13 @@ namespace NearestNeighbor
         
             for (int i = resultIndex; i < (resultIndex + numberOfNode); i++)
             {
-                resultSet.Add(Program1.ResultSet[i]);
+                resultSet.Add(nnImplObj.ResultSet[i]);
             }
             resultIndex += numberOfNode;
             writeToFile(resultSet);
             return resultSet;
         }
-        static void writeToFile(MyResultSet ResSet)
+        void writeToFile(MyResultSet ResSet)
         {
             int counter = 0;
             string outputfile = "resultSet" + tempCounter + ".txt";
@@ -640,7 +706,7 @@ namespace NearestNeighbor
             List<string> outputfilenames = new List<string>();
 
             outputfilenames.Add("Current ResultSetEntries-->");
-            foreach (var item in Program1.ResultSet)
+            foreach (var item in nnImplObj.ResultSet)
             {
                 outputfilenames.Add("\t\t[" + counter + "]" + item.filename + "\t" + item.score);
                 counter++;
@@ -648,7 +714,7 @@ namespace NearestNeighbor
 
             outputfilenames.Add("Current PrunedList-->");
             counter = 0;
-            foreach (var item in Program1.prunedNodeQueue)
+            foreach (var item in nnImplObj.prunedNodeQueue)
             {
                 outputfilenames.Add("\t\t[" + counter + "]  File:" + item.fileID + "\t" + item.pruneDistance + "\t" + item.isLeaf);
                 counter++;
@@ -665,22 +731,39 @@ namespace NearestNeighbor
             File.WriteAllLines(outputfile, outputfilenames.ToArray());
         }
 
+        // Moved this to Driver -- Rick
+        /*
         static void Main(string[] args)
         {
             // Usage:
             // NearestNeighbour [indexFolder queryfile pagesize=6000 outputfile=results.txt]
+            NearestNeighbor nnObj = new NearestNeighbor();
+            MyResultSet resultSet = nnObj.getFirst(10);
+            resultSet = resultSet = nnObj.getNext(10);
+            resultSet = nnObj.getNext(10);
+            //resultSet = nnObj.getNext(10);
+            //resultSet = nnObj.getNext(10);
+            //resultSet = nnObj.getNext(10);
+            //resultSet = nnObj.getNext(10);
+            //resultSet = nnObj.getNext(10);
+            //resultSet = nnObj.getNext(10);
+            //resultSet = nnObj.getNext(10);
 
-            MyResultSet resultSet = getFirst(10);
-            /*getNext(10);
-            getNext(10);
-            getNext(10);
-            getNext(10);
-            getNext(10);
-            getNext(10);
-            getNext(10);
-            getNext(10);
-            getNext(10);
-            getNext(10);*/
-        }
+            //feature index starts from 0, so if you wanna change the 5th feature, pass 4 here...
+            nnObj.setFeatureWeight(2, 4.0);
+            MyResultSet newResults = nnObj.getFirst(10);
+            newResults = nnObj.getNext(10);
+            newResults = nnObj.getNext(10);
+            //newResults = nnObj.getNext(10);
+            //newResults = nnObj.getNext(10);
+            //newResults = nnObj.getNext(10);
+            //newResults = nnObj.getNext(10);
+            //newResults = nnObj.getNext(10);
+            //newResults = nnObj.getNext(10);
+            //newResults = nnObj.getNext(10);
+
+            nnObj.setQueryFile(@"E:\CG\NearestNeighborCS\NearestNeighborCS\bin\Debug\query1.txt");
+            newResults = nnObj.getFirst(10);
+        }*/
     }
 }
