@@ -9,18 +9,26 @@ namespace SearchInterface
     public class JsMarshal
     {
         private Form1 _parent;
+        private Dictionary<string, int> userFeedback = new Dictionary<string,int>();
 
         public JsMarshal() { }
         public JsMarshal(Form1 theForm) { _parent = theForm; }
 
-        public void LikeButtonPressed(string filename)
+        public void LikeButtonPressed(string filename, Boolean active)
         {
-            _parent.SetStaus("User liked " + filename);
+            userFeedback[filename] = active ? 1 : 0;
+            _parent.SetStatus("User liked: " + filename + " Status= " + userFeedback[filename]);
         }
 
-        public void HateButtonPressed(string filename)
+        public void HateButtonPressed(string filename, Boolean active)
         {
-            _parent.SetStaus("User hated " + filename);
+            userFeedback[filename] = active ? -1 : 0;
+            _parent.SetStatus("User hated: " + filename + " Status= " + userFeedback[filename]);
+        }
+
+        public Dictionary<string, int> getUserFeedback()
+        {
+            return userFeedback;
         }
     }
 }
