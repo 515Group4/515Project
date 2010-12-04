@@ -14,21 +14,20 @@ namespace NearestNeighborCS
             // NearestNeighbour [indexFolder queryfile pagesize=6000 outputfile=results.txt]
             NearestNeighbor.NearestNeighbor nnObj1 = new NearestNeighbor.NearestNeighbor();
 
-            nnObj1.setFolderDir(@"C:\cse515\idx\sift_k200_l16\");
-            nnObj1.setQueryFile(@"query.txt");
+            nnObj1.setFolderDir(@"C:\cse515\idx\sift_k50_l16\");
+            nnObj1.setQueryFile(@"C:\cse515\sift-query.txt");
 
+            NearestNeighbor.NearestNeighbor nnObj2 = new NearestNeighbor.NearestNeighbor();
+            nnObj2.setFolderDir(@"C:\cse515\idx\shape_k8_l5\");
+            nnObj2.setQueryFile(@"C:\cse515\query.txt");
+
+            NRA merge = new NRA(nnObj1, nnObj2);
+            List<string> images = merge.mergeAndReturn(2);
+            foreach (string i in images)
+            {
+                Console.WriteLine("image: " + i);
+            }
             
-            MyResultSet resultSet = nnObj1.getFirst(10);
-            foreach (MyResultEntry e in resultSet)
-            {
-                Console.WriteLine("Name: " + e.filename + " score: " + e.score);
-            }
-            resultSet = nnObj1.getNext(5);
-            Console.WriteLine("Next 5....");
-            foreach (MyResultEntry e in resultSet)
-            {
-                Console.WriteLine("Name: " + e.filename + " score: " + e.score);
-            }
             //resultSet = nnObj1.getNext(7);
 
 
