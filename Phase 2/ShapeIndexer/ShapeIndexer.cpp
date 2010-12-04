@@ -274,11 +274,11 @@ void IterateThroughEachShape(const PixelPacket *px, int cols, int rows, ofstream
 		}
 
 		// at this point, the shape is ready.
-		unsigned int descriptor1 = numFeatures > 0 ? FindColorDescriptor(px, shapelayer, importantPoints[i].size, rows, cols, x, y) : 0;
-		unsigned int descriptor2 = numFeatures > 1 ? (unsigned int)(FindEccentricityDescriptor(px, shapelayer, importantPoints[i].size, rows, cols, x, y) * 65536) : 0; // arbit
-		unsigned int descriptor3 = numFeatures > 2 ? (unsigned int)FindCentralityDescriptor(px, shapelayer, importantPoints[i].size, rows, cols, x, y) : 0;
-		unsigned int descriptor4 = numFeatures > 3 ? FindMomentDescriptor(px, shapelayer, importantPoints[i].size, rows, cols, x, y) : 0;
-		unsigned int descriptor5 = numFeatures > 4 ? FindShapeLibraryDescriptor(px, shapelayer, rows, cols, x, y) : 0;
+		unsigned int descriptor4 = numFeatures > 0 ? FindMomentDescriptor(px, shapelayer, importantPoints[i].size, rows, cols, x, y) : 0;
+		unsigned int descriptor1 = numFeatures > 1 ? FindColorDescriptor(px, shapelayer, importantPoints[i].size, rows, cols, x, y) : 0;
+		unsigned int descriptor5 = numFeatures > 2 ? FindShapeLibraryDescriptor(px, shapelayer, rows, cols, x, y) : 0;
+		unsigned int descriptor3 = numFeatures > 3 ? (unsigned int)FindCentralityDescriptor(px, shapelayer, importantPoints[i].size, rows, cols, x, y) : 0;
+		unsigned int descriptor2 = numFeatures > 4 ? (unsigned int)(FindEccentricityDescriptor(px, shapelayer, importantPoints[i].size, rows, cols, x, y) * 65536) : 0; // arbit
 
 		cout << "------------------------" << endl;
 		cout << "Color Descr:   \t" << descriptor1 << endl;
