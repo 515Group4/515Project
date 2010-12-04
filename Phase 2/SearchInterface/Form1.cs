@@ -27,7 +27,7 @@ namespace SearchInterface
 
         public JsMarshal mymarshal = null;
 
-        public void SetStaus(string status)
+        public void SetStatus(string status)
         {
             this.statusbar.Text = status;
         }
@@ -118,9 +118,47 @@ body{font-family: sans-serif; font-size: 14px; }
 .resimg{max-height: 120px; margin-top: 2em;}
 .like{background-image: url('res/like-normal.png'); width:55px;}
 .like:hover{background-image: url('res/like-hot.png'); width:55px;}
+.like_active{background-image: url('res/like-hot.png'); width:55px;}
 .hate{background-image: url('res/hate-normal.png'); width:29px;}
 .hate:hover{background-image: url('res/hate-hot.png'); width:29px;}
+.hate_active{background-image: url('res/hate-hot.png'); width:29px;}
         </style>
+        <script>
+            filenames = {};
+            function likeClickHandler(filename, elem){
+                var active = same(elem.className, 'active');
+                window.external.LikeButtonPressed(filename, !active);
+                elem.className = active ? 'like rate' : 'like_active rate';
+                if(filenames[filename]==elem) return false;
+                if(!filenames[filename]){ filenames[filename] = elem; return false};
+                filenames[filename].className = 'hate rate';
+                filenames[filename] = elem;
+                return false;
+            }
+
+            function hateClickHandler(filename, elem){
+                var active = same(elem.className, 'active');
+                window.external.HateButtonPressed(filename, !active);
+                elem.className = active ? 'hate rate' : 'hate_active rate';
+                if(filenames[filename]==elem) return false;
+                if(!filenames[filename]){ filenames[filename] = elem; return false};
+                filenames[filename].className = 'like rate';
+                filenames[filename] = elem;
+                return false;
+            }
+
+            function changeClass(elem, lh){
+                elem.className = lh + ' rate';
+            }
+
+            function same(arr, nm){
+                arr = arr.split(' ');
+                for(var i = 0; i<arr.length; i++){
+                    if(arr[i].indexOf(nm)>0) return true;
+                }
+                return false;
+            }
+        </script>
     </head>
     <body>");
 
@@ -129,8 +167,8 @@ body{font-family: sans-serif; font-size: 14px; }
                 wr.WriteLine("<div class=\"result\">");
                 wr.WriteLine("\t<div><img class=\"resimg\" src=\"" + Path.Combine(imageFolder, filenames[i]) + "\" width=\"100\" /></div>");
                 wr.WriteLine("\t<div>" + filenames[i] + "</div>");
-                wr.WriteLine("\t<div><a class=\"rate like\" href=\"javascript:window.external.LikeButtonPressed('"+filenames[i]+"');\"></a>");
-                wr.WriteLine("<a class=\"rate hate\" href=\"javascript:window.external.HateButtonPressed('" + filenames[i] + "');\"></a></div>");
+                wr.WriteLine("\t<div><a class=\"rate like\" href=\"#1\" onClick=\"likeClickHandler('"+filenames[i]+"',this);\"></a>");
+                wr.WriteLine("<a class=\"rate hate\" href=\"#1\" onClick=\"hateClickHandler('" + filenames[i] + "',this);\"></a></div>");
                 wr.WriteLine("</div>");
             }
 
