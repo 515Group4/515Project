@@ -344,6 +344,7 @@ namespace NearestNeighbor
 
 
                     // Step 3. Find a random point in the database
+                    fl.Seek(0, SeekOrigin.Begin);
                     byte[] leafPage = new byte[pageSize];
                     fl.Read(leafPage, 0, pageSize);
                     LeafPage p = LeafPage.ParseFromBytes(leafPage);
