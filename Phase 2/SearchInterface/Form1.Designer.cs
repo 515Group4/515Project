@@ -46,6 +46,7 @@
             this.openFileDialog3 = new System.Windows.Forms.OpenFileDialog();
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.statusbar = new System.Windows.Forms.ToolStripStatusLabel();
+            this.button5 = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).BeginInit();
             this.statusStrip1.SuspendLayout();
             this.SuspendLayout();
@@ -213,11 +214,22 @@
             this.statusbar.Size = new System.Drawing.Size(42, 17);
             this.statusbar.Text = "Ready!";
             // 
+            // button5
+            // 
+            this.button5.Location = new System.Drawing.Point(676, 104);
+            this.button5.Name = "button5";
+            this.button5.Size = new System.Drawing.Size(100, 23);
+            this.button5.TabIndex = 14;
+            this.button5.Text = "FeedbackSearch";
+            this.button5.UseVisualStyleBackColor = true;
+            this.button5.Click += new System.EventHandler(this.button5_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(869, 557);
+            this.Controls.Add(this.button5);
             this.Controls.Add(this.statusStrip1);
             this.Controls.Add(this.button4);
             this.Controls.Add(this.textBox3);
@@ -263,6 +275,7 @@
         private System.Windows.Forms.OpenFileDialog openFileDialog3;
         private System.Windows.Forms.StatusStrip statusStrip1;
         private System.Windows.Forms.ToolStripStatusLabel statusbar;
+        private System.Windows.Forms.Button button5;
     }
 }
 

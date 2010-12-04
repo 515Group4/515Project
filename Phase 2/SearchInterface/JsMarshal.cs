@@ -9,7 +9,7 @@ namespace SearchInterface
     public class JsMarshal
     {
         private Form1 _parent;
-        private Dictionary<string, int> userFeedback = new Dictionary<string,int>();
+        public Dictionary<string, int> userFeedback = new Dictionary<string,int>();
 
         public JsMarshal() { }
         public JsMarshal(Form1 theForm) { _parent = theForm; }
@@ -24,11 +24,6 @@ namespace SearchInterface
         {
             userFeedback[filename] = active ? -1 : 0;
             _parent.SetStatus("User hated: " + filename + " Status= " + userFeedback[filename]);
-        }
-
-        public Dictionary<string, int> getUserFeedback()
-        {
-            return userFeedback;
         }
     }
 }

@@ -187,6 +187,18 @@ body{font-family: sans-serif; font-size: 14px; }
             }
         }
 
+        private void button5_Click(object sender, EventArgs e)
+        {
+            foreach (KeyValuePair<string, int> pair in mymarshal.userFeedback)
+            {
+                string filename = pair.Key;
+                int status = pair.Value;
+
+
+            }
+
+        }
+
         
     }
 }
