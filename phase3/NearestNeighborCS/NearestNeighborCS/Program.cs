@@ -180,10 +180,12 @@ namespace NearestNeighbor
             if (this.Contains(entry))
             {
                 this[this.IndexOf(entry)].score += distance == 0 ? 1000 : 1 / distance;
+                //this[this.IndexOf(entry)].score += distance == 0 ? 1000 : 1 / distance;
             }
             else
             {
                 entry.score = distance == 0 ? 10000 : 100 / distance;
+              //  entry.score = distance == 0 ? 1000 : 1 / distance;
                 this.Add(entry);
             }
         }
@@ -232,7 +234,8 @@ namespace NearestNeighbor
     class NearestNeighbor_Impl
     {
         private string folder = @"E:\CG\NearestNeighborCS\NearestNeighborCS\bin\Debug\";
-        static int pageSize = 420;
+        //static int pageSize = 420;
+        static int pageSize = 1200;
         static string treeFileName = "STRTree.txt";
         static string leafFileName = "STRLeaf.txt";
         public static int numNeighbors = 10;
@@ -453,7 +456,7 @@ namespace NearestNeighbor
             prunEntry.fileID = fileID;
             prunEntry.isLeaf = true;
             prunEntry.pruneDistance = distance;
-            if (!prunedNodeQueue.Contains(prunEntry))
+         //   if (!prunedNodeQueue.Contains(prunEntry))
             {
                 prunedNodeQueue.Add(prunEntry);
             }
@@ -467,7 +470,7 @@ namespace NearestNeighbor
                 if (node.MinDistance(query,weightFactor) > best[numNeighbors - 1].distance)
                 {
                     PrunedEntry objEntry = new PrunedEntry() { pruneDistance = node.MinDistance(query, weightFactor), nodePointer = Math.Abs(node.pointer) };
-                    if(!prunedNodeQueue.Contains(objEntry))
+                  //  if(!prunedNodeQueue.Contains(objEntry))
                     {
                         prunedNodeQueue.Add(objEntry);
                     }
@@ -625,7 +628,8 @@ namespace NearestNeighbor
             }
             resultIndex = numOfNN;
 
-            writeToFile(resultSet);
+            // removed per discussion on irc
+           // writeToFile(resultSet);
             return resultSet;
         }
         

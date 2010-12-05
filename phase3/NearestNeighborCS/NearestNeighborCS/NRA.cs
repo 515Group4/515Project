@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,6 +11,8 @@ namespace NearestNeighborCS
     class NRA
     {
         private int numAccess;
+        private double scale1 = -1;
+        private double scale2 = -1; // normalization factors for each object
         private NearestNeighbor.NearestNeighbor obj1; // first object to merge
         private NearestNeighbor.NearestNeighbor obj2; // second object to merge
 
@@ -35,38 +38,67 @@ namespace NearestNeighborCS
             
             // we need to do these two getFirst calls to initialize all the stuff
             // inside the various NN objects for retrival.  
-            MyResultSet rs = obj1.getFirst(1);
-            this.addResultSet(rs);
-            rs = obj2.getFirst(1);
+            MyResultSet rs = obj1.getFirst(70);
+           
+            this.addResultSet(rs,1);
+            rs = obj2.getFirst(70);
+            this.addResultSet(rs,2);
+            this.removeSingle();
+            this.getNumDominant();
             
 
-            // dangerous to have this in a while?
-            while (this.getNumDominant() < target)
+            // 
+         /*   while (this.getNumDominant() < target)
             {
                 Console.WriteLine("Num Dominant: " + this.getNumDominant());
                 if (numAccess % 2 == 0)
                 {
+                    Console.WriteLine("OBJ1");
                     rs = obj1.getNext(1);
+                    this.addResultSet(rs, 1);
                 }
                 else
                 {
+                    Console.WriteLine("OBJ2");
                     rs = obj2.getNext(1);
+                    this.addResultSet(rs, 2);
                 }
-                this.addResultSet(rs);
-            }
+                
+            }*/
             
             return dom;
         }
 
-        private void addResultSet(MyResultSet r)
+        private void addResultSet(MyResultSet r, int obj)
         {
+            double score;
             foreach (MyResultEntry e in r)
             {
-                this.addData(e.filename, fix(e.score));
+                score = fix(e.score);
+                if (obj == 1)
+                {
+                    if (scale1 == -1)
+                    {
+                        scale1 = 1 / score;
+                    }
+                    score *= scale1;
+                }
+                if (obj == 2)
+                {
+                    if (scale2 == -1)
+                    {
+                        scale2 = 1 / score;
+                    }
+                    score *= scale2;
+                }
+                this.addData(fixfn(e.filename), score);
                 numAccess++;
-                Console.WriteLine("[" + numAccess + "] added image: " + e.filename);
+                Console.WriteLine("[" + numAccess + "] added image: " + fixfn(e.filename) + " score(" + score + ")");
+                
             }
         }
+
+
 
         private int getNumDominant()
         {
@@ -96,6 +128,21 @@ namespace NearestNeighborCS
             return num;
         }
 
+        private void removeSingle()
+        {
+            foreach (DictionaryEntry d in single)
+            {
+                if (best.Contains(d.Key))
+                {
+                    best.Remove(d.Key);
+                }
+                if (worst.Contains(d.Key))
+                {
+                    worst.Remove(d.Key);
+                }
+            }
+        }
+
         private void addData(string image, double val)
         {
             if (!single.ContainsKey(image))
@@ -116,14 +163,29 @@ namespace NearestNeighborCS
         // 1000 we normalize to 1000
         private static double fix(double x)
         {
-            if (x > 1000)
+            if (x > 1)
             {
-                return 1000;
+                return 1;
+            }
+            else if (x < 0.01)
+            {
+                return 100 * x;
             }
             else
             {
                 return x;
             }
+        }
+
+        private static string fixfn(string f)
+        {
+            string pretty = f.TrimStart('0');
+            if (!pretty.Contains(".tif"))
+            {
+                pretty = pretty + ".tif";
+            }
+
+            return pretty;
         }
 
         // potential for the COMP delegate

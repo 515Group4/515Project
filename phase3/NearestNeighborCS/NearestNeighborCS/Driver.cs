@@ -19,7 +19,7 @@ namespace NearestNeighborCS
 
             NearestNeighbor.NearestNeighbor nnObj2 = new NearestNeighbor.NearestNeighbor();
             nnObj2.setFolderDir(@"C:\cse515\idx\shape_k8_l5\");
-            nnObj2.setQueryFile(@"C:\cse515\query.txt");
+            nnObj2.setQueryFile(@"C:\cse515\query18.txt");
 
             NRA merge = new NRA(nnObj1, nnObj2);
             List<string> images = merge.mergeAndReturn(2);
