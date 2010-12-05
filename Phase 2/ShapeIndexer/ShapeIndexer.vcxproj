@@ -39,11 +39,13 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Data\Programs\ImageMagick\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Data\Programs\ImageMagick\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\Program Files (x86)\ImageMagick-6.6.5-Q16\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Program Files (x86)\ImageMagick-6.6.5-Q16\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
+    <IncludePath>C:\Program Files (x86)\ImageMagick-6.6.5-Q16\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Program Files (x86)\ImageMagick-6.6.5-Q16\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

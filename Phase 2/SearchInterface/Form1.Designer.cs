@@ -47,6 +47,11 @@
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.statusbar = new System.Windows.Forms.ToolStripStatusLabel();
             this.button5 = new System.Windows.Forms.Button();
+            this.label5 = new System.Windows.Forms.Label();
+            this.textBox4 = new System.Windows.Forms.TextBox();
+            this.button6 = new System.Windows.Forms.Button();
+            this.label6 = new System.Windows.Forms.Label();
+            this.comboBox1 = new System.Windows.Forms.ComboBox();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).BeginInit();
             this.statusStrip1.SuspendLayout();
             this.SuspendLayout();
@@ -54,11 +59,11 @@
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(31, 9);
+            this.label1.Location = new System.Drawing.Point(17, 9);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(59, 15);
+            this.label1.Size = new System.Drawing.Size(73, 15);
             this.label1.TabIndex = 0;
-            this.label1.Text = "Index File:";
+            this.label1.Text = "Shape Index:";
             // 
             // textBox1
             // 
@@ -84,7 +89,7 @@
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(12, 46);
+            this.label2.Location = new System.Drawing.Point(12, 69);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(78, 15);
             this.label2.TabIndex = 3;
@@ -94,7 +99,7 @@
             // 
             this.textBox2.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
                         | System.Windows.Forms.AnchorStyles.Right)));
-            this.textBox2.Location = new System.Drawing.Point(96, 43);
+            this.textBox2.Location = new System.Drawing.Point(96, 66);
             this.textBox2.Name = "textBox2";
             this.textBox2.Size = new System.Drawing.Size(680, 23);
             this.textBox2.TabIndex = 4;
@@ -103,7 +108,7 @@
             // button2
             // 
             this.button2.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.button2.Location = new System.Drawing.Point(782, 42);
+            this.button2.Location = new System.Drawing.Point(782, 65);
             this.button2.Name = "button2";
             this.button2.Size = new System.Drawing.Size(75, 23);
             this.button2.TabIndex = 5;
@@ -114,7 +119,7 @@
             // button3
             // 
             this.button3.Anchor = System.Windows.Forms.AnchorStyles.Top;
-            this.button3.Location = new System.Drawing.Point(397, 104);
+            this.button3.Location = new System.Drawing.Point(344, 127);
             this.button3.Name = "button3";
             this.button3.Size = new System.Drawing.Size(75, 23);
             this.button3.TabIndex = 6;
@@ -127,10 +132,10 @@
             this.webBrowser1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
                         | System.Windows.Forms.AnchorStyles.Left)
                         | System.Windows.Forms.AnchorStyles.Right)));
-            this.webBrowser1.Location = new System.Drawing.Point(15, 133);
+            this.webBrowser1.Location = new System.Drawing.Point(15, 157);
             this.webBrowser1.MinimumSize = new System.Drawing.Size(20, 20);
             this.webBrowser1.Name = "webBrowser1";
-            this.webBrowser1.Size = new System.Drawing.Size(842, 399);
+            this.webBrowser1.Size = new System.Drawing.Size(842, 442);
             this.webBrowser1.TabIndex = 7;
             // 
             // openFileDialog1
@@ -140,7 +145,7 @@
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(13, 76);
+            this.label3.Location = new System.Drawing.Point(13, 99);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(77, 15);
             this.label3.TabIndex = 8;
@@ -148,7 +153,7 @@
             // 
             // numericUpDown1
             // 
-            this.numericUpDown1.Location = new System.Drawing.Point(96, 74);
+            this.numericUpDown1.Location = new System.Drawing.Point(96, 97);
             this.numericUpDown1.Minimum = new decimal(new int[] {
             1,
             0,
@@ -166,7 +171,7 @@
             // label4
             // 
             this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(197, 76);
+            this.label4.Location = new System.Drawing.Point(197, 99);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(84, 15);
             this.label4.TabIndex = 10;
@@ -174,15 +179,18 @@
             // 
             // textBox3
             // 
-            this.textBox3.Location = new System.Drawing.Point(287, 76);
+            this.textBox3.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
+                        | System.Windows.Forms.AnchorStyles.Right)));
+            this.textBox3.Location = new System.Drawing.Point(287, 99);
             this.textBox3.Name = "textBox3";
             this.textBox3.Size = new System.Drawing.Size(489, 23);
             this.textBox3.TabIndex = 11;
-            this.textBox3.Text = "C:\\Data\\Datasets\\t2";
+            this.textBox3.Text = "C:\\Data\\Datasets\\t3";
             // 
             // button4
             // 
-            this.button4.Location = new System.Drawing.Point(782, 76);
+            this.button4.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.button4.Location = new System.Drawing.Point(782, 99);
             this.button4.Name = "button4";
             this.button4.Size = new System.Drawing.Size(75, 23);
             this.button4.TabIndex = 12;
@@ -202,7 +210,7 @@
             // 
             this.statusStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.statusbar});
-            this.statusStrip1.Location = new System.Drawing.Point(0, 535);
+            this.statusStrip1.Location = new System.Drawing.Point(0, 602);
             this.statusStrip1.Name = "statusStrip1";
             this.statusStrip1.Size = new System.Drawing.Size(869, 22);
             this.statusStrip1.TabIndex = 13;
@@ -216,7 +224,8 @@
             // 
             // button5
             // 
-            this.button5.Location = new System.Drawing.Point(676, 104);
+            this.button5.Anchor = System.Windows.Forms.AnchorStyles.Top;
+            this.button5.Location = new System.Drawing.Point(425, 128);
             this.button5.Name = "button5";
             this.button5.Size = new System.Drawing.Size(100, 23);
             this.button5.TabIndex = 14;
@@ -224,11 +233,68 @@
             this.button5.UseVisualStyleBackColor = true;
             this.button5.Click += new System.EventHandler(this.button5_Click);
             // 
+            // label5
+            // 
+            this.label5.AutoSize = true;
+            this.label5.Location = new System.Drawing.Point(32, 37);
+            this.label5.Name = "label5";
+            this.label5.Size = new System.Drawing.Size(58, 15);
+            this.label5.TabIndex = 15;
+            this.label5.Text = "Sift Index:";
+            // 
+            // textBox4
+            // 
+            this.textBox4.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
+                        | System.Windows.Forms.AnchorStyles.Right)));
+            this.textBox4.Location = new System.Drawing.Point(96, 37);
+            this.textBox4.Name = "textBox4";
+            this.textBox4.Size = new System.Drawing.Size(680, 23);
+            this.textBox4.TabIndex = 16;
+            this.textBox4.Text = "C:\\Data\\Datasets\\indices\\sift_k50_l16\\meta.txt";
+            // 
+            // button6
+            // 
+            this.button6.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.button6.Location = new System.Drawing.Point(782, 36);
+            this.button6.Name = "button6";
+            this.button6.Size = new System.Drawing.Size(75, 23);
+            this.button6.TabIndex = 17;
+            this.button6.Text = "Browse";
+            this.button6.UseVisualStyleBackColor = true;
+            this.button6.Click += new System.EventHandler(this.button6_Click);
+            // 
+            // label6
+            // 
+            this.label6.AutoSize = true;
+            this.label6.Location = new System.Drawing.Point(30, 131);
+            this.label6.Name = "label6";
+            this.label6.Size = new System.Drawing.Size(60, 15);
+            this.label6.TabIndex = 19;
+            this.label6.Text = "Merge Fn:";
+            // 
+            // comboBox1
+            // 
+            this.comboBox1.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.comboBox1.FormattingEnabled = true;
+            this.comboBox1.Items.AddRange(new object[] {
+            "Min",
+            "Max",
+            "Average"});
+            this.comboBox1.Location = new System.Drawing.Point(96, 127);
+            this.comboBox1.Name = "comboBox1";
+            this.comboBox1.Size = new System.Drawing.Size(121, 23);
+            this.comboBox1.TabIndex = 20;
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(869, 557);
+            this.ClientSize = new System.Drawing.Size(869, 624);
+            this.Controls.Add(this.comboBox1);
+            this.Controls.Add(this.label6);
+            this.Controls.Add(this.button6);
+            this.Controls.Add(this.textBox4);
+            this.Controls.Add(this.label5);
             this.Controls.Add(this.button5);
             this.Controls.Add(this.statusStrip1);
             this.Controls.Add(this.button4);
@@ -276,6 +342,11 @@
         private System.Windows.Forms.StatusStrip statusStrip1;
         private System.Windows.Forms.ToolStripStatusLabel statusbar;
         private System.Windows.Forms.Button button5;
+        private System.Windows.Forms.Label label5;
+        private System.Windows.Forms.TextBox textBox4;
+        private System.Windows.Forms.Button button6;
+        private System.Windows.Forms.Label label6;
+        private System.Windows.Forms.ComboBox comboBox1;
     }
 }
 
