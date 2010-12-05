@@ -226,6 +226,8 @@ body{font-family: sans-serif; font-size: 14px; }
             string siftOutput = Path.Combine(Path.GetDirectoryName(textBox4.Text), "output.txt");
             FeedbackProcessor siftFeedback = new FeedbackProcessor(mymarshal.getFeedback(), siftOutput, siftFeatures, siftShapes);
             */
+
+            shapeFeedback.computeAvgFeatures();
              string test = "test";
         }
 

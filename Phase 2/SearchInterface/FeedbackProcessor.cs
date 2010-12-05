@@ -11,6 +11,7 @@ namespace SearchInterface
         private Dictionary<string, int> data;
         public Dictionary<string, ImageObj> relImages;
         public Dictionary<string, ImageObj> notRelImages;
+        public double[] avgFeature;
         public ImageObj query;
         
         private string[] index;
@@ -30,6 +31,7 @@ namespace SearchInterface
           
             numFeatures = ft;
             numShapes = shp;
+            avgFeature = new double[numFeatures];
 
             query = new ImageObj(numShapes, numFeatures, qry);
             relImages = new Dictionary<string,ImageObj>();
@@ -61,6 +63,42 @@ namespace SearchInterface
                 }
             }
 
+        }
+
+        public void computeAvgFeatures()
+        {
+            // Feature thresholds are the avg Euclidean distance
+            // from the query
+            
+            for(int i=0; i<numFeatures; i++){
+                double d = 0;
+                int total = 0;
+                // For each feature go through each image
+                foreach (KeyValuePair<String, ImageObj> pair in relImages)
+                {
+                    // And each of its shapes
+                    foreach(Shape shape in pair.Value.shapes){
+                        if (shape == null) break;
+                        d += shape.feature[i];
+                        total++;
+                    }
+                    
+                }
+
+                foreach (KeyValuePair<String, ImageObj> pair in notRelImages)
+                {
+                    // And each of its shapes
+                    foreach (Shape shape in pair.Value.shapes)
+                    {
+                        if(shape==null) break;
+                        d += shape.feature[i];
+                        total++;
+                    }
+                }
+
+                avgFeature[i] = (double)(d / total);
+                string done = "done";
+            }
         }
     }
 
