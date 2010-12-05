@@ -18,8 +18,6 @@ namespace SearchInterface
         private int shapeFeatures;
         private int shapeShapes;
         private string queryImageName;
-        private string[] siftQueryRepresentation;
-        private string[] shapeQueryRepresentation;
 
         public Form1()
         {
@@ -228,7 +226,7 @@ body{font-family: sans-serif; font-size: 14px; }
             */
 
             shapeFeedback.computeAvgFeatures();
-             string test = "test";
+            string test = "test";
         }
 
         private void button6_Click(object sender, EventArgs e)
