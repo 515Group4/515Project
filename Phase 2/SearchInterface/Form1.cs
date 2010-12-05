@@ -225,7 +225,7 @@ body{font-family: sans-serif; font-size: 14px; }
             FeedbackProcessor siftFeedback = new FeedbackProcessor(mymarshal.getFeedback(), siftOutput, siftFeatures, siftShapes);
             */
 
-            shapeFeedback.computeAvgFeatures();
+            shapeFeedback.computeFeatureThresholds();
             string test = "test";
         }
 

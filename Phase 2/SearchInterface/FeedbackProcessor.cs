@@ -11,7 +11,7 @@ namespace SearchInterface
         private Dictionary<string, int> data;
         public Dictionary<string, ImageObj> relImages;
         public Dictionary<string, ImageObj> notRelImages;
-        public double[] avgFeature;
+        public double[] threshold;
         public ImageObj query;
         
         private string[] index;
@@ -31,7 +31,7 @@ namespace SearchInterface
           
             numFeatures = ft;
             numShapes = shp;
-            avgFeature = new double[numFeatures];
+            threshold = new double[numFeatures];
 
             query = new ImageObj(numShapes, numFeatures, qry);
             relImages = new Dictionary<string,ImageObj>();
@@ -65,11 +65,11 @@ namespace SearchInterface
 
         }
 
-        public void computeAvgFeatures()
+        public void computeFeatureThresholds()
         {
             // Feature thresholds are the avg Euclidean distance
             // from the query
-            
+            double[] avgFeature = new double[numFeatures];
             for(int i=0; i<numFeatures; i++){
                 double d = 0;
                 int total = 0;
@@ -96,8 +96,56 @@ namespace SearchInterface
                     }
                 }
 
+                for (int j = 0; j < numFeatures; j++)
+                {
+                    // Still not sure about including the shape
+                    // in the avg but it's here for now
+                    if(query.shapes[j].feature[i]==null) break;
+                    d += query.shapes[j].feature[i];
+                    total++;
+                }
+
                 avgFeature[i] = (double)(d / total);
-                string done = "done";
+            }
+            // Now use the avg to get std dev for threshold
+            for (int i = 0; i < numFeatures; i++)
+            {
+                double d = 0;
+                int total = 0;
+                // For each feature go through each image
+                foreach (KeyValuePair<String, ImageObj> pair in relImages)
+                {
+                    // And each of its shapes
+                    foreach (Shape shape in pair.Value.shapes)
+                    {
+                        if (shape == null) break;
+                        d += (shape.feature[i] - avgFeature[i]) * (shape.feature[i] - avgFeature[i]);
+                        total++;
+                    }
+
+                }
+
+                foreach (KeyValuePair<String, ImageObj> pair in notRelImages)
+                {
+                    // And each of its shapes
+                    foreach (Shape shape in pair.Value.shapes)
+                    {
+                        if (shape == null) break;
+                        d += (shape.feature[i] - avgFeature[i]) * (shape.feature[i] - avgFeature[i]);
+                        total++;
+                    }
+                }
+
+                for (int j = 0; j < numFeatures; j++)
+                {
+                    // Still not sure about including the shape
+                    // in the avg but it's here for now
+                    if (query.shapes[j].feature[i] == null) break;
+                    d += (query.shapes[j].feature[i] - avgFeature[i]) * (query.shapes[j].feature[i] - avgFeature[i]);
+                    total++;
+                }
+
+                threshold[i] = (double)Math.Sqrt(d / total);
             }
         }
     }
