@@ -9,14 +9,16 @@ namespace SearchInterface
     class FeedbackProcessor
     {
         private Dictionary<string, int> data;
-        private Dictionary<string, ImageObj> relImages;
-        private Dictionary<string, ImageObj> notRelImages;
+        public Dictionary<string, ImageObj> relImages;
+        public Dictionary<string, ImageObj> notRelImages;
+        public ImageObj query;
+        
         private string[] index;
         private int numFeatures;
         private int numShapes;
         
 
-        public FeedbackProcessor(Dictionary<string, int> results, string outputLocation, int ft, int shp)
+        public FeedbackProcessor(string qry, Dictionary<string, int> results, string outputLocation, int ft, int shp)
         {
             data = results;
             try
@@ -25,8 +27,11 @@ namespace SearchInterface
             } catch(Exception e){
                 System.Windows.Forms.MessageBox.Show("Couldn't find output file"+e);
             }
+          
             numFeatures = ft;
             numShapes = shp;
+
+            query = new ImageObj(numShapes, numFeatures, qry);
             relImages = new Dictionary<string,ImageObj>();
             notRelImages = new Dictionary<string,ImageObj>();
 
