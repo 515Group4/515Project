@@ -134,9 +134,7 @@ namespace SearchInterface
             siftQuery(meta);
             //runQuery(indexFolder, int.Parse(meta[3]));
 
-            shapeFeatureWeights = new double[5] { 1,1,1,1,1 };
             StartANewNNQuery();
-            //DoNearestNeighborQuerying();
 
         }
 
@@ -161,7 +159,9 @@ namespace SearchInterface
         }
 
         double[] shapeFeatureWeights;
-        bool useShapeFeatureWeights = true;
+        bool useShapeFeatureWeights = false;
+        double[] siftFeatureWeights;
+        bool useSiftFeatureWeights = false;
 
         private void DoNearestNeighborQuerying()
         {
@@ -178,6 +178,10 @@ namespace SearchInterface
             nnSift.setFolderDir(indexFolderSift);
             nnSift.setQueryFile("sift-query.txt");
             nnSift.setPageSize(SiftPageSize);
+            if (useSiftFeatureWeights)
+            {
+                nnSift.setFeatureWeights(siftFeatureWeights);
+            }
 
 
             var merge = new NearestNeighborNRA.NRA(nnShape, nnSift);
@@ -276,45 +280,90 @@ body{font-family: sans-serif; font-size: 14px; }
 
         private void button5_Click(object sender, EventArgs e)
         {
-            string shapeOutput = Path.Combine(Path.GetDirectoryName(textBox1.Text), "output.txt");
-            FeedbackProcessor shapeFeedback = new FeedbackProcessor(Path.GetFileName(queryImagePath), mymarshal.getFeedback(), shapeOutput, shapeFeatures, shapeShapes);
-            
-            /* Commented because for now only Shape results are used
+            if (comboBox2.SelectedIndex == 2)
+            {
+                string shapeOutput = Path.Combine(Path.GetDirectoryName(textBox1.Text), "output.txt");
+                FeedbackProcessor shapeFeedback = new FeedbackProcessor(Path.GetFileName(queryImagePath), mymarshal.getFeedback(), shapeOutput, shapeFeatures, shapeShapes);
+
+                /* Commented because for now only Shape results are used
              
-            string siftOutput = Path.Combine(Path.GetDirectoryName(textBox4.Text), "output.txt");
-            FeedbackProcessor siftFeedback = new FeedbackProcessor(mymarshal.getFeedback(), siftOutput, siftFeatures, siftShapes);
-            */
+                string siftOutput = Path.Combine(Path.GetDirectoryName(textBox4.Text), "output.txt");
+                FeedbackProcessor siftFeedback = new FeedbackProcessor(mymarshal.getFeedback(), siftOutput, siftFeatures, siftShapes);
+                */
 
-            double[] newWeights = shapeFeedback.getFeatureAdjustedValues();
-            string[] namesOfFeatures = { "Moment", "Color", "Shape Library", "Centrality", "Eccentricity" };
-            string s = "After the feedback process, we have adjusted the weights: ";
-            for (int i = 0; i < newWeights.Length && i < namesOfFeatures.Length; i++)
-            {
-                s += "\r\n " + namesOfFeatures[i] + ": " + newWeights[i].ToString("F4");
-            }
-            s += "\r\nDo you want to search again using these parameters?";
-            if (MessageBox.Show(this, s, "Search again?", MessageBoxButtons.YesNo) == System.Windows.Forms.DialogResult.Yes)
-            {
-                double minValue = newWeights[0];
-                for (int i = 1; i < newWeights.Length; i++)
+                double[] newWeights = shapeFeedback.getFeatureAdjustedValues();
+                string[] namesOfFeatures = { "Moment", "Color", "Shape Library", "Centrality", "Eccentricity" };
+                string s = "After the feedback process, we have adjusted the weights: ";
+                for (int i = 0; i < newWeights.Length && i < namesOfFeatures.Length; i++)
                 {
-                    minValue = (minValue > newWeights[i]) ? newWeights[i] : minValue;
+                    s += "\r\n " + namesOfFeatures[i] + ": " + newWeights[i].ToString("F4");
                 }
-                minValue -= 0.01;
-
-                if (minValue < 0)
+                s += "\r\nDo you want to search again using these parameters?";
+                if (MessageBox.Show(this, s, "Search again?", MessageBoxButtons.YesNo) == System.Windows.Forms.DialogResult.Yes)
                 {
-                    for (int i = 0; i < newWeights.Length; i++)
+                    double minValue = newWeights[0];
+                    for (int i = 1; i < newWeights.Length; i++)
                     {
-                        newWeights[i] -= minValue;
+                        minValue = (minValue > newWeights[i]) ? newWeights[i] : minValue;
                     }
+                    minValue -= 0.01;
+
+                    if (minValue < 0)
+                    {
+                        for (int i = 0; i < newWeights.Length; i++)
+                        {
+                            newWeights[i] -= minValue;
+                        }
+                    }
+
+                    this.shapeFeatureWeights = newWeights;
+                    this.useShapeFeatureWeights = true;
+                    StartANewNNQuery();
+                }
+            }
+            else if (comboBox2.SelectedIndex == 4)
+            {
+                string siftOutput = Path.Combine(Path.GetDirectoryName(textBox4.Text), "output.txt");
+                FeedbackProcessor siftFeedback = new FeedbackProcessor(Path.GetFileName(queryImagePath), mymarshal.getFeedback(), siftOutput, siftFeatures, siftShapes);
+
+                /* Commented because for now only Shape results are used
+             
+                string siftOutput = Path.Combine(Path.GetDirectoryName(textBox4.Text), "output.txt");
+                FeedbackProcessor siftFeedback = new FeedbackProcessor(mymarshal.getFeedback(), siftOutput, siftFeatures, siftShapes);
+                */
+
+                double[] newWeights = siftFeedback.getFeatureAdjustedValues();
+                string s = "After the feedback process, we have adjusted the weights: ";
+                s += "{" + newWeights[0].ToString("F4");
+                for (int i = 0; i < newWeights.Length; i++)
+                {
+                    s += ", " + newWeights[i].ToString("F4");
+                    if (i % 10 == 0) { s += "\r\n"; }
+                }
+                s += "}\r\nDo you want to search again using these parameters?";
+                if (MessageBox.Show(this, s, "Search again?", MessageBoxButtons.YesNo) == System.Windows.Forms.DialogResult.Yes)
+                {
+                    double minValue = newWeights[0];
+                    for (int i = 1; i < newWeights.Length; i++)
+                    {
+                        minValue = (minValue > newWeights[i]) ? newWeights[i] : minValue;
+                    }
+                    minValue -= 0.01;
+
+                    if (minValue < 0)
+                    {
+                        for (int i = 0; i < newWeights.Length; i++)
+                        {
+                            newWeights[i] -= minValue;
+                        }
+                    }
+
+                    this.siftFeatureWeights = newWeights;
+                    this.useSiftFeatureWeights = true;
+                    StartANewNNQuery();
                 }
 
-                this.shapeFeatureWeights = newWeights;
-                StartANewNNQuery();
             }
-
-            string test = "test";
         }
 
         private void button6_Click(object sender, EventArgs e)
