@@ -67,7 +67,7 @@ namespace SearchInterface
                 return;
             }
 
-            if (File.Exists("query.txt")) { File.Delete("query.txt"); }
+            if (File.Exists("sift-query.txt")) { File.Delete("sift-query.txt"); }
             string outfilename = "sift\\output-k" + siftShapes + "-l" + siftFeatures + ".txt";
             if (File.Exists(outfilename)) { File.Delete(outfilename); }
 
@@ -78,7 +78,7 @@ namespace SearchInterface
             querymaker.StartInfo.CreateNoWindow = true;
             querymaker.Start();
             querymaker.WaitForExit();
-            File.Copy(outfilename, "query.txt", true);
+            File.Copy(outfilename, "sift-query.txt", true);
         }
 
         private void shapeQuery(string[] meta)
@@ -114,20 +114,31 @@ namespace SearchInterface
         private void button3_Click(object sender, EventArgs e)
         {
             queryImageName = textBox2.Text;
-            string indexFolder = Path.GetDirectoryName(textBox4.Text);
-            string[] meta = File.ReadAllLines(Path.Combine(indexFolder, "meta.txt"));
+            string indexFolderShape = Path.GetDirectoryName(textBox1.Text);
+            string[] meta = File.ReadAllLines(Path.Combine(indexFolderShape, "meta.txt"));
 
-            siftQuery(meta);
-            runQuery(indexFolder, int.Parse(meta[3]));
-
-            indexFolder = Path.GetDirectoryName(textBox1.Text);
-            meta = File.ReadAllLines(Path.Combine(indexFolder, "meta.txt"));
-            
             shapeQuery(meta);
-            runQuery(indexFolder, int.Parse(meta[3]));
+            //runQuery(indexFolder, int.Parse(meta[3]));
+
+            string indexFolderSift = Path.GetDirectoryName(textBox4.Text);
+            meta = File.ReadAllLines(Path.Combine(indexFolderSift, "meta.txt"));
+            
+            siftQuery(meta);
+            //runQuery(indexFolder, int.Parse(meta[3]));
+
+            var nnShape = new NearestNeighborNRA.NearestNeighbor();
+            nnShape.setFolderDir(indexFolderShape);
+            nnShape.setQueryFile("query.txt");
+
+            var nnSift = new NearestNeighborNRA.NearestNeighbor();
+            nnSift.setFolderDir(indexFolderSift);
+            nnSift.setQueryFile("sift-query.txt");
+
+            var merge = new NearestNeighborNRA.NRA(nnShape, nnSift);
+            List<string> images = merge.mergeAndReturn(2);
             
             // For now this will always show the shape results
-            string[] filenames = File.ReadAllLines(resultsFile);
+            //string[] filenames = File.ReadAllLines(resultsFile);
             StreamWriter wr = new StreamWriter(htmlFile);
 
             if (Directory.Exists(textBox3.Text))
@@ -189,13 +200,13 @@ body{font-family: sans-serif; font-size: 14px; }
     </head>
     <body>");
 
-            for (int i = 0; i < filenames.Length && i<numericUpDown1.Value; i++)
+            for (int i = 0; i < images.Count && i<numericUpDown1.Value; i++)
             {
                 wr.WriteLine("<div class=\"result\">");
-                wr.WriteLine("\t<div><img class=\"resimg\" src=\"" + Path.Combine(imageFolder, filenames[i]) + "\" width=\"100\" /></div>");
-                wr.WriteLine("\t<div>" + filenames[i] + "</div>");
-                wr.WriteLine("\t<div><a class=\"rate like\" href=\"#1\" onClick=\"likeClickHandler('"+filenames[i]+"',this);\"></a>");
-                wr.WriteLine("<a class=\"rate hate\" href=\"#1\" onClick=\"hateClickHandler('" + filenames[i] + "',this);\"></a></div>");
+                wr.WriteLine("\t<div><img class=\"resimg\" src=\"" + Path.Combine(imageFolder, images[i]) + "\" width=\"100\" /></div>");
+                wr.WriteLine("\t<div>" + images[i] + "</div>");
+                wr.WriteLine("\t<div><a class=\"rate like\" href=\"#1\" onClick=\"likeClickHandler('"+images[i]+"',this);\"></a>");
+                wr.WriteLine("<a class=\"rate hate\" href=\"#1\" onClick=\"hateClickHandler('" + images[i] + "',this);\"></a></div>");
                 wr.WriteLine("</div>");
             }
 
