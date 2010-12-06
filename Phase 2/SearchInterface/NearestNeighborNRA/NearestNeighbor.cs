@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.IO;
 
-namespace NearestNeighbor
+namespace NearestNeighborNRA
 {
     class DataPoint
     {
@@ -19,18 +19,18 @@ namespace NearestNeighbor
         {
             double d = 0;
             for (int i = 0; i < values.Length; i++)
-			{
+            {
                 d += weights[i] * ((this.values[i] - other.values[i]) * (this.values[i] - other.values[i]));
-			}
+            }
             return Math.Sqrt(d);
         }
 
         internal static DataPoint ParseString(string sm)
         {
             string[] sarr = sm.Split(',');
-            DataPoint p = new DataPoint(sarr.Length-1);
+            DataPoint p = new DataPoint(sarr.Length - 1);
             p.fileId = sarr[0];
-            for (int i = 0; i < sarr.Length-1; i++)
+            for (int i = 0; i < sarr.Length - 1; i++)
             {
                 p.values[i] = uint.Parse(sarr[i + 1]);
             }
@@ -70,7 +70,7 @@ namespace NearestNeighbor
         public uint[] minValues;
         public uint[] maxValues;
         public int pointer;
-        
+
         //Moving this to NearestNeigborImpl class for reasons, //Rishabh S
         //public static List<double> weightFactor = new List<double>(); // Added by Preetika Tyagi
 
@@ -88,14 +88,14 @@ namespace NearestNeighbor
         public static MBR ParseString(string s)
         {
             string[] sarr = s.Split(',');
-            int numFeatures = sarr.Length/2;
+            int numFeatures = sarr.Length / 2;
             MBR m = new MBR(numFeatures);
             m.pointer = int.Parse(sarr[sarr.Length - 1]);
             for (int i = 0; i < numFeatures; i++)
-			{
+            {
                 m.minValues[i] = uint.Parse(sarr[i]);
-                m.maxValues[i] = uint.Parse(sarr[numFeatures+i]);
-			}
+                m.maxValues[i] = uint.Parse(sarr[numFeatures + i]);
+            }
 
             return m;
         }
@@ -138,7 +138,7 @@ namespace NearestNeighbor
         {
             InternalTreePage t = new InternalTreePage();
             string s = ASCIIEncoding.ASCII.GetString(data);
-            string[] sarr = s.Trim().Split(new char[]{'\r', '\n'}, StringSplitOptions.RemoveEmptyEntries);
+            string[] sarr = s.Trim().Split(new char[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
             // each element of sarr is an MBR
             foreach (string sm in sarr)
@@ -185,7 +185,7 @@ namespace NearestNeighbor
             else
             {
                 entry.score = distance == 0 ? 10000 : 100 / distance;
-              //  entry.score = distance == 0 ? 1000 : 1 / distance;
+                //  entry.score = distance == 0 ? 1000 : 1 / distance;
                 this.Add(entry);
             }
         }
@@ -234,8 +234,7 @@ namespace NearestNeighbor
     class NearestNeighbor_Impl
     {
         private string folder = @"E:\CG\NearestNeighborCS\NearestNeighborCS\bin\Debug\";
-        //static int pageSize = 420;
-        static int pageSize = 1200;
+        public int pageSize = 1200;
         static string treeFileName = "STRTree.txt";
         static string leafFileName = "STRLeaf.txt";
         public static int numNeighbors = 10;
@@ -246,7 +245,7 @@ namespace NearestNeighbor
         List<int> pointers = new List<int>();
         public List<PrunedEntry> prunedNodeQueue = new List<PrunedEntry>(); // Added by Preetika Tyagi
         public MyResultSet ResultSet = new MyResultSet();
-        public  List<DataPoint> QueryPoints = new List<DataPoint>();//Added by Rishabh
+        public List<DataPoint> QueryPoints = new List<DataPoint>();//Added by Rishabh
         private FileStream fl;
         private FileStream fs;
         //FileStream fs = new FileStream(Path.Combine(folder, treeFileName), FileMode.Open);//Moved here by Rishabh
@@ -255,7 +254,7 @@ namespace NearestNeighbor
         long NumQueryAccesses = 0;//Moved here by Rishabh
 
         //Moved from MBR class
-        List<double> weightFactor = new List<double>(); // Added by Preetika Tyagi
+        List<double> weightFactor = null; // Added by Preetika Tyagi
         bool isWeightFactorSet = false;
 
         static int findTheRootOffset(FileStream fs)
@@ -282,9 +281,9 @@ namespace NearestNeighbor
             ResultSet.Clear();
             ActualPagesAccessed = 0;
             NumQueryAccesses = 0;
-           
+
             // Step 1. Find the root node
-            
+
             int offsetFromEnd = findTheRootOffset(fs);
             fs.Seek(-offsetFromEnd, SeekOrigin.End);
             byte[] rootpage = new byte[offsetFromEnd];
@@ -292,14 +291,14 @@ namespace NearestNeighbor
             var root = InternalTreePage.ParseFromBytes(rootpage);
 
             long TotalNumSectors = (fs.Length + fl.Length) / (long)pageSize;
-            
+
             //fs.Seek(root.rectangles[0].pointer, SeekOrigin.Begin);
             //byte[] intPage = new byte[pageSize];
             //fs.Read(intPage, 0, pageSize);
             //var level2 = InternalTreePage.ParseFromBytes(intPage);
 
             // Step 2. Find the query
-            
+
             if (queryfile != null)
             {
                 string[] querystrings = File.ReadAllLines(queryfile);
@@ -317,30 +316,15 @@ namespace NearestNeighbor
                     }
                     QueryPoints.Add(query);
 
-                    #region Sample queries
-                    //query.values = new uint[]{ 0, 0, 5277, 5414848, 0 }; // 1.1.02.tiff
-                    //query.values = new uint[] { 201330451, 0, 15444, 2180706326, 138805416 };//4.1.01.tiff,
-                    //query.values = new uint[] { 0, 63080, 1611, 423413, 143130760 };//1.4.10.tiff,
-                    //query.values = new uint[] { 1266436991, 0, 138795, 392952608, 138805928 };//7.2.01
-                    //query.values = new uint[] { 336, 96, 315, 83, 119, 149, 339, 26, 331, 82, 99, 43, 167, 85, 154, 36 }; // 1002.tif,
-                    //query.values = new uint[] { 82, 4, 37, 5, 69, 0, 51, 13, 20, 29, 1, 402, 39, 1, 40, 18 };//1042.tif
-                    //query.values = new uint[] { 36, 59, 98, 10, 42, 177, 89, 17, 99, 45, 13, 67, 167, 43, 81, 26 };//1008.tif,
-                    //query.values = new uint[] { 127, 143, 146, 76, 115, 227, 342, 60, 297, 147, 113, 39, 228, 112, 101, 121 }; // 104.tif, 
-                    //query.values = new uint[] { 0, 0, 0, 0, 95, 41, 0, 0, 263, 35, 0, 2, 101, 218, 139, 5, 0, 0, 0, 0, 49, 44, 54, 8, 200, 7, 7, 21, 125, 44, 162, 38, 0, 0, 0, 0, 72, 0, 41, 68, 167, 0, 2, 96, 46, 11, 117, 71, 0, 0, 0, 0, 80, 0, 0, 50, 154, 0, 0, 123, 15, 4, 11, 85 };
-                    //query.values = new uint[]{4150645879, 55876, 5, 378477, 134742016}; // 0033.tiff
-                    //query.values = new uint[] { 0, 73, 76, 1, 54, 44, 1, 9, 161, 0, 0, 2, 115, 0, 0, 2, 0, 207, 41, 0, 45, 140, 78, 1, 150, 4, 
-                    //    6, 6, 139, 0, 0, 6, 0, 13, 116, 6, 32, 6, 195, 7, 145, 0, 11, 21, 142, 0, 1, 2, 0, 0, 152, 31, 21, 0, 130, 95, 139, 0, 
-                    //    4, 54, 116, 0, 1, 6 };
-
-                    #endregion
 
                     //Added by Rishabh - Begin
-                    //Setting the weightFactor. This will be set only once in the beginning 
-                    //and once it has been set, it is expected from user to reset it manually and only after that he can call this function...
-                    if (!isWeightFactorSet)
+                    if (weightFactor == null)
                     {
+                        //Setting the weightFactor. This will be set only once in the beginning 
+                        //and once it has been set, it is expected from user to reset it manually and only after that he can call this function...
                         //Initially all the features will have a weightFactor of 1
-                        for(int i=0;i<numFeatures;i++)
+                        weightFactor = new List<double>();
+                        for (int i = 0; i < numFeatures; i++)
                             weightFactor.Add(1.0);
                         isWeightFactorSet = true;
                     }
@@ -352,14 +336,14 @@ namespace NearestNeighbor
                     fl.Read(leafPage, 0, pageSize);
                     LeafPage p = LeafPage.ParseFromBytes(leafPage);
 
-                    
+
                     best = new BestMatch[numNeighbors];
                     for (int i = 0; i < numNeighbors; i++)
                     {
                         best[i].point = new DataPoint(numFeatures);
                         best[i].point.fileId = p.values[0].fileId;
                         best[i].point.values = p.values[0].values;
-                        best[i].distance = best[i].point.distance(query,weightFactor);
+                        best[i].distance = best[i].point.distance(query, weightFactor);
                     }
 
                     // Step 4. recurse over the tree, trying to find candidate nodes to expand
@@ -383,7 +367,7 @@ namespace NearestNeighbor
             List<string> outputfilenames = new List<string>();
             foreach (var item in ResultSet)
             {
-//                Console.WriteLine("File: {0}: \t {1}", item.filename, item.score);
+                //                Console.WriteLine("File: {0}: \t {1}", item.filename, item.score);
                 int filename = 0;
                 if (int.TryParse(item.filename, out filename))
                 {
@@ -409,13 +393,13 @@ namespace NearestNeighbor
             //}
 
             // Step f. Cleanup
-            
+
             /*Commented by Rishabh. Can't be closed just now coz will be used repeatedly.
             fs.Close();
             fl.Close();
              */
             prunedNodeQueue.Sort(); // Added by Preetika Tyagi
-//            return prunedNodeQueue; // Added by Preetika Tyagi
+            //            return prunedNodeQueue; // Added by Preetika Tyagi
         }
         public void close()
         {
@@ -456,7 +440,7 @@ namespace NearestNeighbor
             prunEntry.fileID = fileID;
             prunEntry.isLeaf = true;
             prunEntry.pruneDistance = distance;
-         //   if (!prunedNodeQueue.Contains(prunEntry))
+            //   if (!prunedNodeQueue.Contains(prunEntry))
             {
                 prunedNodeQueue.Add(prunEntry);
             }
@@ -467,16 +451,16 @@ namespace NearestNeighbor
             foreach (var node in page.rectangles)
             {
                 // Added by Preetika Tyagi: begins
-                if (node.MinDistance(query,weightFactor) > best[numNeighbors - 1].distance)
+                if (node.MinDistance(query, weightFactor) > best[numNeighbors - 1].distance)
                 {
                     PrunedEntry objEntry = new PrunedEntry() { pruneDistance = node.MinDistance(query, weightFactor), nodePointer = Math.Abs(node.pointer) };
-                  //  if(!prunedNodeQueue.Contains(objEntry))
+                    //  if(!prunedNodeQueue.Contains(objEntry))
                     {
                         prunedNodeQueue.Add(objEntry);
                     }
                 }
                 // Added by Preetika Tyagi: ends
-                if (node.MinDistance(query,weightFactor) <= best[numNeighbors-1].distance)
+                if (node.MinDistance(query, weightFactor) <= best[numNeighbors - 1].distance)
                 {
                     if (pointers.Contains(node.pointer))
                     {
@@ -513,7 +497,7 @@ namespace NearestNeighbor
                                 best = ll.ToArray();
 
                                 //Added by Rishabh - Begin
-                                if(!(ll.Contains(prunedBest)))
+                                if (!(ll.Contains(prunedBest)))
                                 {
                                     insertLeafInPrunedList(prunedBest.point.fileId, prunedBest.distance);
                                 }
@@ -553,14 +537,24 @@ namespace NearestNeighbor
         //the index starts from 0.
         public int setFeatureWeight(int index, double newWeight)
         {
-            if (index > weightFactor.Count)
+            if (index >= weightFactor.Count)
             {
                 Console.WriteLine("Feature index out of bound.");
                 return 1;
             }
-           
+
             weightFactor[index] = newWeight;
             return 0;
+        }
+
+        public void setFeatureWeights(double[] weights)
+        {
+            this.weightFactor = new List<double>();
+            for (int i = 0; i < weights.Length; i++)
+            {
+                weightFactor.Add(weights[i]);
+            }
+            this.isWeightFactorSet = true;
         }
 
         public void setQueryFile(string newQueryFile)
@@ -585,6 +579,11 @@ namespace NearestNeighbor
                 fl = new FileStream(Path.Combine(folder, leafFileName), FileMode.Open);
             }
         }
+
+        internal void setPageSize(int pageSize)
+        {
+            this.pageSize = pageSize;
+        }
     }
 
     class NearestNeighbor
@@ -606,8 +605,8 @@ namespace NearestNeighbor
         {
             return nnImplObj.setFeatureWeight(index, newWeight);
         }
-
         
+
 
         // Made this public -- Rick
         public MyResultSet getFirst(int numOfNN)
@@ -629,10 +628,10 @@ namespace NearestNeighbor
             resultIndex = numOfNN;
 
             // removed per discussion on irc
-           // writeToFile(resultSet);
+            // writeToFile(resultSet);
             return resultSet;
         }
-        
+
         // Made this public -- Rick
         public MyResultSet getNext(int numberOfNode)
         {
@@ -640,12 +639,12 @@ namespace NearestNeighbor
             bool isCandidateNodeSet = false;
             if ((resultIndex + numberOfNode) > nnImplObj.ResultSet.Count)
             {
-                    for (int i = 0; i < NearestNeighbor_Impl.numNeighbors; i++)
-                    {
-                        nnImplObj.best[i].distance = Double.MaxValue;
-                        nnImplObj.best[i].point.fileId = "";
-                        nnImplObj.best[i].point.values = null;
-                    }
+                for (int i = 0; i < NearestNeighbor_Impl.numNeighbors; i++)
+                {
+                    nnImplObj.best[i].distance = Double.MaxValue;
+                    nnImplObj.best[i].point.fileId = "";
+                    nnImplObj.best[i].point.values = null;
+                }
                 while ((nnImplObj.ResultSet.Count < (resultIndex + numberOfNode)) && (nnImplObj.prunedNodeQueue.Count != 0))
                 {
                     if (nnImplObj.prunedNodeQueue[0].isLeaf)
@@ -659,14 +658,14 @@ namespace NearestNeighbor
                         ll.Sort();
 
                         BestMatch prunedBest = ll[NearestNeighbor_Impl.numNeighbors];
-                        
+
                         ll.RemoveAt(NearestNeighbor_Impl.numNeighbors);
                         nnImplObj.best = ll.ToArray();
                         nnImplObj.prunedNodeQueue.RemoveAt(0);
                         isCandidateNodeSet = true;
 
                         //reinserting the last node in the prouned list
-                        if((prunedBest.distance != Double.MaxValue) && (!(ll.Contains(prunedBest))))
+                        if ((prunedBest.distance != Double.MaxValue) && (!(ll.Contains(prunedBest))))
                         {
                             nnImplObj.insertLeafInPrunedList(prunedBest.point.fileId, prunedBest.distance);
                         }
@@ -684,7 +683,7 @@ namespace NearestNeighbor
                         }
                         //NearestNeighbor_Impl.recurseFind
                         PrunedEntry entry = nnImplObj.prunedNodeQueue[0];
-                        for(int i=0;i<nnImplObj.QueryPoints.Count;i++)
+                        for (int i = 0; i < nnImplObj.QueryPoints.Count; i++)
                         {
                             nnImplObj.findRecursivelyInPruned(nnImplObj.QueryPoints[i], entry);
                         }
@@ -693,15 +692,17 @@ namespace NearestNeighbor
                     }
                 }
             }
-        
+
             for (int i = resultIndex; i < (resultIndex + numberOfNode); i++)
             {
                 resultSet.Add(nnImplObj.ResultSet[i]);
             }
             resultIndex += numberOfNode;
-            writeToFile(resultSet);
+            //writeToFile(resultSet);
             return resultSet;
         }
+
+
         void writeToFile(MyResultSet ResSet)
         {
             int counter = 0;
@@ -736,39 +737,19 @@ namespace NearestNeighbor
             File.WriteAllLines(outputfile, outputfilenames.ToArray());
         }
 
-        // Moved this to Driver -- Rick
-        /*
-        static void Main(string[] args)
+        internal void setPageSize(int pageSize)
         {
-            // Usage:
-            // NearestNeighbour [indexFolder queryfile pagesize=6000 outputfile=results.txt]
-            NearestNeighbor nnObj = new NearestNeighbor();
-            MyResultSet resultSet = nnObj.getFirst(10);
-            resultSet = resultSet = nnObj.getNext(10);
-            resultSet = nnObj.getNext(10);
-            //resultSet = nnObj.getNext(10);
-            //resultSet = nnObj.getNext(10);
-            //resultSet = nnObj.getNext(10);
-            //resultSet = nnObj.getNext(10);
-            //resultSet = nnObj.getNext(10);
-            //resultSet = nnObj.getNext(10);
-            //resultSet = nnObj.getNext(10);
+            nnImplObj.setPageSize(pageSize);
+        }
 
-            //feature index starts from 0, so if you wanna change the 5th feature, pass 4 here...
-            nnObj.setFeatureWeight(2, 4.0);
-            MyResultSet newResults = nnObj.getFirst(10);
-            newResults = nnObj.getNext(10);
-            newResults = nnObj.getNext(10);
-            //newResults = nnObj.getNext(10);
-            //newResults = nnObj.getNext(10);
-            //newResults = nnObj.getNext(10);
-            //newResults = nnObj.getNext(10);
-            //newResults = nnObj.getNext(10);
-            //newResults = nnObj.getNext(10);
-            //newResults = nnObj.getNext(10);
+        internal void doCleanup()
+        {
+            nnImplObj.close();
+        }
 
-            nnObj.setQueryFile(@"E:\CG\NearestNeighborCS\NearestNeighborCS\bin\Debug\query1.txt");
-            newResults = nnObj.getFirst(10);
-        }*/
+        internal void setFeatureWeights(double[] shapeFeatureWeights)
+        {
+            this.nnImplObj.setFeatureWeights(shapeFeatureWeights);
+        }
     }
 }

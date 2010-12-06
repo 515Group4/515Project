@@ -1,20 +1,18 @@
 ﻿using System;
-using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Collections; // for hashtable
-using NearestNeighbor;
 
-namespace NearestNeighborCS
+namespace NearestNeighborNRA
 {
     class NRA
     {
         private int numAccess;
         private double scale1 = -1;
         private double scale2 = -1; // normalization factors for each object
-        private NearestNeighbor.NearestNeighbor obj1; // first object to merge
-        private NearestNeighbor.NearestNeighbor obj2; // second object to merge
+        private NearestNeighbor obj1; // first object to merge
+        private NearestNeighbor obj2; // second object to merge
 
         private Hashtable best = new Hashtable(); // tracks the best
         private Hashtable worst = new Hashtable(); // trakcs the worst
@@ -22,10 +20,10 @@ namespace NearestNeighborCS
 
         private delegate double COMP(double x, double y); // compare method always returns a double and takes two doubles
         private COMP op; // delegate comparator method
-        private List<string> dom; 
+        private List<string> dom;
 
 
-        public NRA(NearestNeighbor.NearestNeighbor in1, NearestNeighbor.NearestNeighbor in2)
+        public NRA(NearestNeighbor in1, NearestNeighbor in2)
         {
             numAccess = 0;
             obj1 = in1;
@@ -35,37 +33,37 @@ namespace NearestNeighborCS
 
         public List<string> mergeAndReturn(int target)
         {
-            
+
             // we need to do these two getFirst calls to initialize all the stuff
             // inside the various NN objects for retrival.  
             MyResultSet rs = obj1.getFirst(70);
-           
-            this.addResultSet(rs,1);
+
+            this.addResultSet(rs, 1);
             rs = obj2.getFirst(70);
-            this.addResultSet(rs,2);
+            this.addResultSet(rs, 2);
             this.removeSingle();
             this.getNumDominant();
-            
+
 
             // 
-         /*   while (this.getNumDominant() < target)
-            {
-                Console.WriteLine("Num Dominant: " + this.getNumDominant());
-                if (numAccess % 2 == 0)
-                {
-                    Console.WriteLine("OBJ1");
-                    rs = obj1.getNext(1);
-                    this.addResultSet(rs, 1);
-                }
-                else
-                {
-                    Console.WriteLine("OBJ2");
-                    rs = obj2.getNext(1);
-                    this.addResultSet(rs, 2);
-                }
+            /*   while (this.getNumDominant() < target)
+               {
+                   Console.WriteLine("Num Dominant: " + this.getNumDominant());
+                   if (numAccess % 2 == 0)
+                   {
+                       Console.WriteLine("OBJ1");
+                       rs = obj1.getNext(1);
+                       this.addResultSet(rs, 1);
+                   }
+                   else
+                   {
+                       Console.WriteLine("OBJ2");
+                       rs = obj2.getNext(1);
+                       this.addResultSet(rs, 2);
+                   }
                 
-            }*/
-            
+               }*/
+
             return dom;
         }
 
@@ -94,7 +92,7 @@ namespace NearestNeighborCS
                 this.addData(fixfn(e.filename), score);
                 numAccess++;
                 Console.WriteLine("[" + numAccess + "] added image: " + fixfn(e.filename) + " score(" + score + ")");
-                
+
             }
         }
 
@@ -200,5 +198,11 @@ namespace NearestNeighborCS
             return Math.Min(x, y);
         }
 
+
+        public void doCleanup()
+        {
+            obj1.doCleanup();
+            obj2.doCleanup();
+        }
     }
 }
