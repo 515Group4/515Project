@@ -13,15 +13,22 @@ namespace SearchInterface
 {
     public partial class Form1 : Form
     {
+        private int siftFeatures;
+        private int siftShapes;
+        private int shapeFeatures;
+        private int shapeShapes;
+        private string queryImagePath;
+
         public Form1()
         {
             InitializeComponent();
 
             mymarshal = new JsMarshal(this);
             this.webBrowser1.ObjectForScripting = mymarshal;
+            this.comboBox1.SelectedIndex = 0;
         }
 
-        string imageFolder = @"C:\Data\Datasets\t2";
+        string imageFolder = @"C:\Data\Datasets\t3";
         const string resultsFile = "results.txt";
         const string htmlFile = "a.html";
 
@@ -48,58 +55,78 @@ namespace SearchInterface
             }
         }
 
-        private void button3_Click(object sender, EventArgs e)
+        private void siftQuery(string[] meta)
         {
-            // Step 1: the index parameters
-            string indexFolder = Path.GetDirectoryName(textBox1.Text);
-            string[] meta = File.ReadAllLines(Path.Combine(indexFolder, "meta.txt"));
+            bool useSift = (meta[0] == "sift");
+            siftFeatures = int.Parse(meta[1]);
+            siftShapes = int.Parse(meta[2]);
 
-            bool useSift        = (meta[0] == "sift");
-            int numFeatures     = int.Parse(meta[1]);
-            int numShapes       = int.Parse(meta[2]);
-            int pageSize        = int.Parse(meta[3]);
+            if (!useSift)
+            {
+                System.Windows.Forms.MessageBox.Show("You input a shape index in the SIFT box.  Shame on you");
+                return;
+            }
 
-            // Step 2: create the query file
+            if (File.Exists("query.txt")) { File.Delete("query.txt"); }
+            string outfilename = "sift\\output-k" + siftShapes + "-l" + siftFeatures + ".txt";
+            if (File.Exists(outfilename)) { File.Delete(outfilename); }
+
+            Process querymaker = new Process();
+            querymaker.StartInfo.WorkingDirectory = Path.Combine(Application.StartupPath, "sift");
+            querymaker.StartInfo.FileName = "SiftExtractor.exe";
+            querymaker.StartInfo.Arguments = string.Format("{1} {2} -F {0}", queryImagePath, siftShapes, siftFeatures);
+            querymaker.StartInfo.CreateNoWindow = true;
+            querymaker.Start();
+            querymaker.WaitForExit();
+            File.Copy(outfilename, "query.txt", true);
+        }
+
+        private void shapeQuery(string[] meta)
+        {
+            bool useSift = (meta[0] == "sift");
+            shapeFeatures = int.Parse(meta[1]);
+            shapeShapes = int.Parse(meta[2]);
+
             if (useSift)
             {
-                if (File.Exists("query.txt")) { File.Delete("query.txt"); }
-                string outfilename = "sift\\output-k" + numShapes + "-l" + numFeatures + ".txt";
-                if (File.Exists(outfilename)) { File.Delete(outfilename); }
-                //if (File.Exists("sift\\test.pgm")) { File.Delete("sift\\test.pgm"); }
-
-                //Process conversion = new Process();
-                //conversion.StartInfo.FileName = "convert.exe";
-                //conversion.StartInfo.Arguments = textBox2.Text + " sift\\test.pgm";
-                //conversion.Start();
-                //conversion.WaitForExit();
-
-                Process querymaker = new Process();
-                querymaker.StartInfo.WorkingDirectory = Path.Combine(Application.StartupPath, "sift");
-                querymaker.StartInfo.FileName = "SiftExtractor.exe";
-                querymaker.StartInfo.Arguments = string.Format("{1} {2} -F {0}", textBox2.Text, numShapes, numFeatures);
-                querymaker.StartInfo.CreateNoWindow = true;
-                querymaker.Start();
-                querymaker.WaitForExit();
-                File.Copy(outfilename, "query.txt", true);
-            }
-            else
-            {
-                Process querymaker = new Process();
-                querymaker.StartInfo.FileName = "ShapeIndexer.exe";
-                querymaker.StartInfo.Arguments = string.Format("-o query.txt -l {1} -k {2} -F \"{0}\"", textBox2.Text, numFeatures, numShapes);
-                querymaker.StartInfo.CreateNoWindow = true;
-                querymaker.Start();
-                querymaker.WaitForExit();
+                System.Windows.Forms.MessageBox.Show("You input a SIFT index in the shape box.  Shame on you");
+                return;
             }
 
-            // Step 3: run the query
+            Process querymaker = new Process();
+            querymaker.StartInfo.FileName = "ShapeIndexer.exe";
+            querymaker.StartInfo.Arguments = string.Format("-o query.txt -l {1} -k {2} -F \"{0}\"", queryImagePath, shapeFeatures, shapeShapes);
+            querymaker.StartInfo.CreateNoWindow = true;
+            querymaker.Start();
+            querymaker.WaitForExit();
+        }
+
+        private void runQuery(string indexFolder, int pageSize)
+        {
             Process queryRunner = new Process();
             queryRunner.StartInfo.FileName = "NearestNeighbor.exe";
             queryRunner.StartInfo.Arguments = string.Format("{0} {1} {2}", indexFolder, "query.txt", pageSize);
             queryRunner.StartInfo.CreateNoWindow = true;
             queryRunner.Start();
             queryRunner.WaitForExit();
+        }
 
+        private void button3_Click(object sender, EventArgs e)
+        {
+            queryImagePath = textBox2.Text;
+            string indexFolder = Path.GetDirectoryName(textBox4.Text);
+            string[] meta = File.ReadAllLines(Path.Combine(indexFolder, "meta.txt"));
+
+            siftQuery(meta);
+            runQuery(indexFolder, int.Parse(meta[3]));
+
+            indexFolder = Path.GetDirectoryName(textBox1.Text);
+            meta = File.ReadAllLines(Path.Combine(indexFolder, "meta.txt"));
+            
+            shapeQuery(meta);
+            runQuery(indexFolder, int.Parse(meta[3]));
+            
+            // For now this will always show the shape results
             string[] filenames = File.ReadAllLines(resultsFile);
             StreamWriter wr = new StreamWriter(htmlFile);
 
@@ -187,6 +214,27 @@ body{font-family: sans-serif; font-size: 14px; }
             }
         }
 
-        
+        private void button5_Click(object sender, EventArgs e)
+        {
+            string shapeOutput = Path.Combine(Path.GetDirectoryName(textBox1.Text), "output.txt");
+            FeedbackProcessor shapeFeedback = new FeedbackProcessor(Path.GetFileName(queryImagePath), mymarshal.getFeedback(), shapeOutput, shapeFeatures, shapeShapes);
+            
+            /* Commented because for now only Shape results are used
+             
+            string siftOutput = Path.Combine(Path.GetDirectoryName(textBox4.Text), "output.txt");
+            FeedbackProcessor siftFeedback = new FeedbackProcessor(mymarshal.getFeedback(), siftOutput, siftFeatures, siftShapes);
+            */
+
+            double[] newWeights = shapeFeedback.getFeatureAdjustedValues();
+            string test = "test";
+        }
+
+        private void button6_Click(object sender, EventArgs e)
+        {
+            if (openFileDialog2.ShowDialog(this) == System.Windows.Forms.DialogResult.OK)
+            {
+                textBox4.Text = openFileDialog2.FileName;
+            }
+        }
     }
 }

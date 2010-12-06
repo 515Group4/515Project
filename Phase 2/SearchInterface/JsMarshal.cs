@@ -26,7 +26,7 @@ namespace SearchInterface
             _parent.SetStatus("User hated: " + filename + " Status= " + userFeedback[filename]);
         }
 
-        public Dictionary<string, int> getUserFeedback()
+        public Dictionary<string, int> getFeedback()
         {
             return userFeedback;
         }
