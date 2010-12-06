@@ -254,7 +254,7 @@ namespace NearestNeighborNRA
         long NumQueryAccesses = 0;//Moved here by Rishabh
 
         //Moved from MBR class
-        List<double> weightFactor = new List<double>(); // Added by Preetika Tyagi
+        List<double> weightFactor = null; // Added by Preetika Tyagi
         bool isWeightFactorSet = false;
 
         static int findTheRootOffset(FileStream fs)
@@ -316,29 +316,14 @@ namespace NearestNeighborNRA
                     }
                     QueryPoints.Add(query);
 
-                    #region Sample queries
-                    //query.values = new uint[]{ 0, 0, 5277, 5414848, 0 }; // 1.1.02.tiff
-                    //query.values = new uint[] { 201330451, 0, 15444, 2180706326, 138805416 };//4.1.01.tiff,
-                    //query.values = new uint[] { 0, 63080, 1611, 423413, 143130760 };//1.4.10.tiff,
-                    //query.values = new uint[] { 1266436991, 0, 138795, 392952608, 138805928 };//7.2.01
-                    //query.values = new uint[] { 336, 96, 315, 83, 119, 149, 339, 26, 331, 82, 99, 43, 167, 85, 154, 36 }; // 1002.tif,
-                    //query.values = new uint[] { 82, 4, 37, 5, 69, 0, 51, 13, 20, 29, 1, 402, 39, 1, 40, 18 };//1042.tif
-                    //query.values = new uint[] { 36, 59, 98, 10, 42, 177, 89, 17, 99, 45, 13, 67, 167, 43, 81, 26 };//1008.tif,
-                    //query.values = new uint[] { 127, 143, 146, 76, 115, 227, 342, 60, 297, 147, 113, 39, 228, 112, 101, 121 }; // 104.tif, 
-                    //query.values = new uint[] { 0, 0, 0, 0, 95, 41, 0, 0, 263, 35, 0, 2, 101, 218, 139, 5, 0, 0, 0, 0, 49, 44, 54, 8, 200, 7, 7, 21, 125, 44, 162, 38, 0, 0, 0, 0, 72, 0, 41, 68, 167, 0, 2, 96, 46, 11, 117, 71, 0, 0, 0, 0, 80, 0, 0, 50, 154, 0, 0, 123, 15, 4, 11, 85 };
-                    //query.values = new uint[]{4150645879, 55876, 5, 378477, 134742016}; // 0033.tiff
-                    //query.values = new uint[] { 0, 73, 76, 1, 54, 44, 1, 9, 161, 0, 0, 2, 115, 0, 0, 2, 0, 207, 41, 0, 45, 140, 78, 1, 150, 4, 
-                    //    6, 6, 139, 0, 0, 6, 0, 13, 116, 6, 32, 6, 195, 7, 145, 0, 11, 21, 142, 0, 1, 2, 0, 0, 152, 31, 21, 0, 130, 95, 139, 0, 
-                    //    4, 54, 116, 0, 1, 6 };
-
-                    #endregion
 
                     //Added by Rishabh - Begin
-                    //Setting the weightFactor. This will be set only once in the beginning 
-                    //and once it has been set, it is expected from user to reset it manually and only after that he can call this function...
-                    if (!isWeightFactorSet)
+                    if (weightFactor == null)
                     {
+                        //Setting the weightFactor. This will be set only once in the beginning 
+                        //and once it has been set, it is expected from user to reset it manually and only after that he can call this function...
                         //Initially all the features will have a weightFactor of 1
+                        weightFactor = new List<double>();
                         for (int i = 0; i < numFeatures; i++)
                             weightFactor.Add(1.0);
                         isWeightFactorSet = true;
@@ -552,7 +537,7 @@ namespace NearestNeighborNRA
         //the index starts from 0.
         public int setFeatureWeight(int index, double newWeight)
         {
-            if (index > weightFactor.Count)
+            if (index >= weightFactor.Count)
             {
                 Console.WriteLine("Feature index out of bound.");
                 return 1;
@@ -560,6 +545,16 @@ namespace NearestNeighborNRA
 
             weightFactor[index] = newWeight;
             return 0;
+        }
+
+        public void setFeatureWeights(double[] weights)
+        {
+            this.weightFactor = new List<double>();
+            for (int i = 0; i < weights.Length; i++)
+            {
+                weightFactor.Add(weights[i]);
+            }
+            this.isWeightFactorSet = true;
         }
 
         public void setQueryFile(string newQueryFile)
@@ -610,7 +605,7 @@ namespace NearestNeighborNRA
         {
             return nnImplObj.setFeatureWeight(index, newWeight);
         }
-
+        
 
 
         // Made this public -- Rick
@@ -703,9 +698,11 @@ namespace NearestNeighborNRA
                 resultSet.Add(nnImplObj.ResultSet[i]);
             }
             resultIndex += numberOfNode;
-            writeToFile(resultSet);
+            //writeToFile(resultSet);
             return resultSet;
         }
+
+
         void writeToFile(MyResultSet ResSet)
         {
             int counter = 0;
@@ -740,41 +737,6 @@ namespace NearestNeighborNRA
             File.WriteAllLines(outputfile, outputfilenames.ToArray());
         }
 
-        // Moved this to Driver -- Rick
-        /*
-        static void Main(string[] args)
-        {
-            // Usage:
-            // NearestNeighbour [indexFolder queryfile pagesize=6000 outputfile=results.txt]
-            NearestNeighbor nnObj = new NearestNeighbor();
-            MyResultSet resultSet = nnObj.getFirst(10);
-            resultSet = resultSet = nnObj.getNext(10);
-            resultSet = nnObj.getNext(10);
-            //resultSet = nnObj.getNext(10);
-            //resultSet = nnObj.getNext(10);
-            //resultSet = nnObj.getNext(10);
-            //resultSet = nnObj.getNext(10);
-            //resultSet = nnObj.getNext(10);
-            //resultSet = nnObj.getNext(10);
-            //resultSet = nnObj.getNext(10);
-
-            //feature index starts from 0, so if you wanna change the 5th feature, pass 4 here...
-            nnObj.setFeatureWeight(2, 4.0);
-            MyResultSet newResults = nnObj.getFirst(10);
-            newResults = nnObj.getNext(10);
-            newResults = nnObj.getNext(10);
-            //newResults = nnObj.getNext(10);
-            //newResults = nnObj.getNext(10);
-            //newResults = nnObj.getNext(10);
-            //newResults = nnObj.getNext(10);
-            //newResults = nnObj.getNext(10);
-            //newResults = nnObj.getNext(10);
-            //newResults = nnObj.getNext(10);
-
-            nnObj.setQueryFile(@"E:\CG\NearestNeighborCS\NearestNeighborCS\bin\Debug\query1.txt");
-            newResults = nnObj.getFirst(10);
-        }*/
-
         internal void setPageSize(int pageSize)
         {
             nnImplObj.setPageSize(pageSize);
@@ -783,6 +745,11 @@ namespace NearestNeighborNRA
         internal void doCleanup()
         {
             nnImplObj.close();
+        }
+
+        internal void setFeatureWeights(double[] shapeFeatureWeights)
+        {
+            this.nnImplObj.setFeatureWeights(shapeFeatureWeights);
         }
     }
 }

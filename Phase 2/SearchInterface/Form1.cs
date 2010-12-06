@@ -25,7 +25,8 @@ namespace SearchInterface
 
             mymarshal = new JsMarshal(this);
             this.webBrowser1.ObjectForScripting = mymarshal;
-            this.comboBox1.SelectedIndex = 0;
+            this.comboBox1.SelectedIndex = 2;
+            this.comboBox2.SelectedIndex = 2;
         }
 
         string imageFolder = @"C:\Data\Datasets\t3";
@@ -111,34 +112,80 @@ namespace SearchInterface
             queryRunner.WaitForExit();
         }
 
+
+        private string indexFolderSift;
+        private int SiftPageSize;
+        private string indexFolderShape;
+        private int ShapePageSize;
+
         private void button3_Click(object sender, EventArgs e)
         {
+            this.webBrowser1.Navigate("about:blank");
             queryImagePath = textBox2.Text;
-            string indexFolderShape = Path.GetDirectoryName(textBox1.Text);
+            indexFolderShape = Path.GetDirectoryName(textBox1.Text);
             string[] meta = File.ReadAllLines(Path.Combine(indexFolderShape, "meta.txt"));
-            int ShapePageSize = int.Parse(meta[3]);
+            ShapePageSize = int.Parse(meta[3]);
             shapeQuery(meta);
 
-            string indexFolderSift = Path.GetDirectoryName(textBox4.Text);
+            indexFolderSift = Path.GetDirectoryName(textBox4.Text);
             meta = File.ReadAllLines(Path.Combine(indexFolderSift, "meta.txt"));
-            int SiftPageSize = int.Parse(meta[3]);
+            SiftPageSize = int.Parse(meta[3]);
 
             siftQuery(meta);
             //runQuery(indexFolder, int.Parse(meta[3]));
 
+            shapeFeatureWeights = new double[5] { 1,1,1,1,1 };
+            StartANewNNQuery();
+            //DoNearestNeighborQuerying();
+
+        }
+
+        private void StartANewNNQuery()
+        {
+            this.SetStatus("Performing Nearest Neighbor...");
+            this.webBrowser1.Navigate("about:blank");
+            BackgroundWorker bw = new BackgroundWorker();
+            bw.DoWork += new DoWorkEventHandler(bgworker_dowork);
+            bw.RunWorkerCompleted += new RunWorkerCompletedEventHandler(bw_RunWorkerCompleted);
+            bw.RunWorkerAsync();
+        }
+
+        void bw_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        {
+            this.SetStatus("Ready!");
+        }
+
+        void bgworker_dowork(object sender, DoWorkEventArgs e)
+        {
+            DoNearestNeighborQuerying();
+        }
+
+        double[] shapeFeatureWeights;
+        bool useShapeFeatureWeights = true;
+
+        private void DoNearestNeighborQuerying()
+        {
             var nnShape = new NearestNeighborNRA.NearestNeighbor();
             nnShape.setFolderDir(indexFolderShape);
             nnShape.setQueryFile("query.txt");
             nnShape.setPageSize(ShapePageSize);
+            if (useShapeFeatureWeights)
+            {
+                nnShape.setFeatureWeights(shapeFeatureWeights);
+            }
 
             var nnSift = new NearestNeighborNRA.NearestNeighbor();
             nnSift.setFolderDir(indexFolderSift);
             nnSift.setQueryFile("sift-query.txt");
             nnSift.setPageSize(SiftPageSize);
 
+
             var merge = new NearestNeighborNRA.NRA(nnShape, nnSift);
             List<string> images = merge.mergeAndReturn(2);
-            
+
+            merge.doCleanup();
+
+
             // For now this will always show the shape results
             //string[] filenames = File.ReadAllLines(resultsFile);
             StreamWriter wr = new StreamWriter(htmlFile);
@@ -202,12 +249,12 @@ body{font-family: sans-serif; font-size: 14px; }
     </head>
     <body>");
 
-            for (int i = 0; i < images.Count && i<numericUpDown1.Value; i++)
+            for (int i = 0; i < images.Count && i < numericUpDown1.Value; i++)
             {
                 wr.WriteLine("<div class=\"result\">");
                 wr.WriteLine("\t<div><img class=\"resimg\" src=\"" + Path.Combine(imageFolder, images[i]) + "\" width=\"100\" /></div>");
                 wr.WriteLine("\t<div>" + images[i] + "</div>");
-                wr.WriteLine("\t<div><a class=\"rate like\" href=\"#1\" onClick=\"likeClickHandler('"+images[i]+"',this);\"></a>");
+                wr.WriteLine("\t<div><a class=\"rate like\" href=\"#1\" onClick=\"likeClickHandler('" + images[i] + "',this);\"></a>");
                 wr.WriteLine("<a class=\"rate hate\" href=\"#1\" onClick=\"hateClickHandler('" + images[i] + "',this);\"></a></div>");
                 wr.WriteLine("</div>");
             }
@@ -239,6 +286,34 @@ body{font-family: sans-serif; font-size: 14px; }
             */
 
             double[] newWeights = shapeFeedback.getFeatureAdjustedValues();
+            string[] namesOfFeatures = { "Moment", "Color", "Shape Library", "Centrality", "Eccentricity" };
+            string s = "After the feedback process, we have adjusted the weights: ";
+            for (int i = 0; i < newWeights.Length && i < namesOfFeatures.Length; i++)
+            {
+                s += "\r\n " + namesOfFeatures[i] + ": " + newWeights[i].ToString("F4");
+            }
+            s += "\r\nDo you want to search again using these parameters?";
+            if (MessageBox.Show(this, s, "Search again?", MessageBoxButtons.YesNo) == System.Windows.Forms.DialogResult.Yes)
+            {
+                double minValue = newWeights[0];
+                for (int i = 1; i < newWeights.Length; i++)
+                {
+                    minValue = (minValue > newWeights[i]) ? newWeights[i] : minValue;
+                }
+                minValue -= 0.01;
+
+                if (minValue < 0)
+                {
+                    for (int i = 0; i < newWeights.Length; i++)
+                    {
+                        newWeights[i] -= minValue;
+                    }
+                }
+
+                this.shapeFeatureWeights = newWeights;
+                StartANewNNQuery();
+            }
+
             string test = "test";
         }
 
