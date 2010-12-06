@@ -127,7 +127,9 @@ namespace SearchInterface
             runQuery(indexFolder, int.Parse(meta[3]));
             
             // For now this will always show the shape results
+            // Send the results set to JSMarshal
             string[] filenames = File.ReadAllLines(resultsFile);
+            mymarshal.resetResultSet(filenames);
             StreamWriter wr = new StreamWriter(htmlFile);
 
             if (Directory.Exists(textBox3.Text))
@@ -217,6 +219,7 @@ body{font-family: sans-serif; font-size: 14px; }
         private void button5_Click(object sender, EventArgs e)
         {
             string shapeOutput = Path.Combine(Path.GetDirectoryName(textBox1.Text), "output.txt");
+
             FeedbackProcessor shapeFeedback = new FeedbackProcessor(Path.GetFileName(queryImagePath), mymarshal.getFeedback(), shapeOutput, shapeFeatures, shapeShapes);
             
             /* Commented because for now only Shape results are used
@@ -225,7 +228,8 @@ body{font-family: sans-serif; font-size: 14px; }
             FeedbackProcessor siftFeedback = new FeedbackProcessor(mymarshal.getFeedback(), siftOutput, siftFeatures, siftShapes);
             */
 
-            double[] newWeights = shapeFeedback.getFeatureAdjustedValues();
+            //double[] newWeights = shapeFeedback.getFeatureAdjustValues();
+            double[] newShapeWeights = shapeFeedback.getShapeAdjustValues();
             string test = "test";
         }
 

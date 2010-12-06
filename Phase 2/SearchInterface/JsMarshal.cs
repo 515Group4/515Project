@@ -30,5 +30,14 @@ namespace SearchInterface
         {
             return userFeedback;
         }
+
+        public void resetResultSet(string[] results){
+            userFeedback.Clear();
+            for(int i=0; i<results.Length; i++){
+                // Initially there is no feedback on any
+                // of the results
+                userFeedback[results[i]] = 0;
+            }
+        }
     }
 }

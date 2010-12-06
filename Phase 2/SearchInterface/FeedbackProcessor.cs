@@ -7,15 +7,25 @@ using System.IO;
 namespace SearchInterface
 {
     internal delegate double MyFunctionType(double a, double b);
+    internal delegate double AvgStdDev(Shape a, Shape b, double c);
 
     class FeedbackProcessor
     {
         private Dictionary<string, int> data;
         public Dictionary<string, ImageObj> relImages;
         public Dictionary<string, ImageObj> notRelImages;
-        public double[] threshold;
+        public Dictionary<string, ImageObj> untouchedImages;
+
+        public double[] featureThreshold;
+        private double[] avgFeature;
         public int[] featureRelIndex;
         public int[] featureNotRelIndex;
+
+        public double[] shapeThreshold;
+        private double[] avgShape;
+        private int[] shapeRelIndex;
+        private int[] shapeNotRelIndex;
+
         public ImageObj query;
         
         private string[] index;
@@ -36,15 +46,24 @@ namespace SearchInterface
           
             numFeatures = ft;
             numShapes = shp;
-            threshold = new double[numFeatures];
+
+            featureThreshold = new double[numFeatures];
+            avgFeature = new double[numFeatures];
             featureRelIndex = new int[numFeatures];
             featureNotRelIndex = new int[numFeatures];
+
+            shapeThreshold = new double[numShapes];
+            avgShape = new double[numShapes]; 
+            shapeRelIndex = new int[numShapes];
+            shapeNotRelIndex = new int[numShapes];
+
             relShapeCount = 0;
             notRelShapeCount = 0;
 
             query = new ImageObj(numShapes, numFeatures, qry);
             relImages = new Dictionary<string,ImageObj>();
             notRelImages = new Dictionary<string,ImageObj>();
+            untouchedImages = new Dictionary<string, ImageObj>();
 
             buildFeedbackDictionaries();
         }
@@ -54,12 +73,23 @@ namespace SearchInterface
             for (int i = 0; i < index.Length; i++)
             {
                 string[] sarr = index[i].Split(',');
+
+                // Set up query obj
+                if (sarr[0] == query.name)
+                {
+                    query.addShape(index[i]);
+                }
+
+                // Create relevant and irrelevant and untouched
+                // dictionaries
                 if (data.Keys.Contains(sarr[0]))
                 {
-                    var toStore = relImages;
+                    var toStore = untouchedImages;
                     if (data[sarr[0]] < 0)
                     {
                         toStore = notRelImages;
+                    } else if(data[sarr[0]] > 0){
+                        toStore = relImages;
                     }
 
                     if (!toStore.ContainsKey(sarr[0]))
@@ -71,17 +101,173 @@ namespace SearchInterface
 
                     toStore[sarr[0]].addShape(index[i]);
                 }
-
-                // Set up query obj also
-                if (sarr[0] == query.name)
-                {
-                    query.addShape(index[i]);
-                }
             }
 
         }
 
-        public double[] getFeatureAdjustedValues()
+        public double[] getShapeAdjustValues()
+        {
+            computeShapeThresholds();
+            computeShapeRelevance();
+
+            double pfR, pfI;
+            double[] results = new double[numShapes];
+
+            for (int i = 0; i < numShapes; i++)
+            {
+                pfR = relShapeCount == 0 || shapeRelIndex[i] == 0 ? 1 : shapeRelIndex[i] / (double)relShapeCount;
+                pfI = notRelShapeCount == 0 || shapeNotRelIndex[i] == 0 ? 1 : shapeNotRelIndex[i] / (double)notRelShapeCount;
+
+                pfR = pfR == 1 ? 1 : pfR / (1 - pfR);
+                pfI = pfI == 1 ? 1 : pfI / (1 - pfI);
+
+                results[i] = Math.Log(pfR / pfI);
+            }
+
+            return results;
+        }
+
+        private void computeShapeThresholds()
+        {
+            // Get avg shape match score for relevant
+            // and then avg shape match for not rel
+            calcShapeAvgOrStdDev(false);
+            calcShapeAvgOrStdDev(true);
+        }
+
+        private double dev(Shape a, Shape b, double c)
+        {
+            double dist = shapeDistance(a, b);
+            return (dist - c) * (dist - c);
+        }
+
+        private double sum(Shape a, Shape b, double c)
+        {
+            return shapeDistance(a, b);
+        }
+
+        private void calcShapeAvgOrStdDev(bool de)
+        {
+            // Calculates the avg score for the shapes in the query
+            // image if de is false, and calculates the std dev of the
+            // shapes when it is true
+            AvgStdDev worker = de ? new AvgStdDev(dev) : new AvgStdDev(sum);
+
+            // Go through each shape in the query object
+            for (int i = 0; i < numShapes; i++)
+            {
+                if (query.shapes[i] == null) break;
+                
+                double d = 0;
+                int total = 0;
+
+                double avg = de ? avgShape[i] : 0;
+                // For each feature go through each image
+                foreach (KeyValuePair<String, ImageObj> pair in relImages)
+                {
+                    // And each of its shapes
+                    foreach (Shape shape in pair.Value.shapes)
+                    {
+                        if (shape == null || pair.Key == query.name) break;
+                        double tmp = worker(shape, query.shapes[i], avg);
+                        d += tmp;
+                        total++;
+                    }
+
+                }
+
+                foreach (KeyValuePair<String, ImageObj> pair in notRelImages)
+                {
+                    // And each of its shapes
+                    foreach (Shape shape in pair.Value.shapes)
+                    {
+                        if (shape == null || pair.Key == query.name) break;
+                        double tmp = worker(shape, query.shapes[i], avg);
+                        d += tmp;
+                        total++;
+                    }
+                }
+                
+                foreach (KeyValuePair<String, ImageObj> pair in untouchedImages)
+                {
+                    // And each of its shapes
+                    foreach (Shape shape in pair.Value.shapes)
+                    {
+                        if (shape == null || pair.Key == query.name) break;
+                        double tmp = worker(shape, query.shapes[i], avg);
+                        d += tmp;
+                        total++;
+                    }
+                }
+
+                if (de)
+                {
+                    shapeThreshold[i] = (double)Math.Sqrt(d / total);
+                }
+                else
+                {
+                    avgShape[i] = (double)(d / total);
+                }
+            }
+        }
+
+        private double shapeDistance(Shape s, Shape n)
+        {
+            double results = 0;
+
+            for (int i = 0; i < numFeatures; i++)
+            {
+                results += (double)(s.feature[i] - n.feature[i]) * (double)(s.feature[i] - n.feature[i]);
+            }
+
+            return results==0 ? 0 : Math.Sqrt(results);
+        }
+
+        private void computeShapeRelevance()
+        {
+            shapeRel(true);
+            shapeRel(false);
+        }
+
+        private void shapeRel(bool rel)
+        {
+            // If  feature is in the relevant set and is within the threshold
+            // of the query, add one.  The argument says whether to use rel or not rel.
+            var index = rel ? shapeRelIndex : shapeNotRelIndex;
+            var images = rel ? relImages : notRelImages;
+            if (rel) { relShapeCount = 0; } else { notRelShapeCount = 0; }
+
+            for (int i = 0; i < numShapes; i++)
+            {
+                // Go through each shape
+                if (query.shapes[i] == null) break;
+                
+                // First go through each image in rel/not rel
+                foreach (KeyValuePair<string, ImageObj> pair in images)
+                {
+                    // Now each shape in each image
+                    foreach (Shape shape in pair.Value.shapes)
+                    {
+                        // Check the distance to the threshold.  If it is smaller, add
+                        // one to the index score
+                        if (shape == null) break; // No more shapes
+                        double distance = Math.Abs(shapeDistance(shape, query.shapes[i]));
+                        index[i] += distance < shapeThreshold[i] ? 1 : 0; // two std devs
+                        
+                        // These are added to for each shape in the query being matched
+                        // because technically that is the full relevance set
+                        if (rel) { relShapeCount++; } else { notRelShapeCount++; };
+                    }
+                }
+
+            }
+        }
+
+        /*
+         * Below is the processing for getting feature relevance feedback
+         * 
+         */
+        public double[] getFeatureAdjustValues()
         {
             computeFeatureThresholds();
             computeFeatureRelevance();
@@ -103,7 +289,7 @@ namespace SearchInterface
             return results;
         }
 
-        public void computeFeatureThresholds()
+        private void computeFeatureThresholds()
         {
             // This requires iterating through twice
             // only the equation changes so the function is combined
@@ -117,8 +303,6 @@ namespace SearchInterface
             // from the query
             MyFunctionType worker = thres ? new MyFunctionType(square) : new MyFunctionType(sum);
 
-            double[] avgFeature = new double[numFeatures];
-
             for(int i=0; i<numFeatures; i++){
                 double d = 0;
                 int total = 0;
@@ -128,7 +312,7 @@ namespace SearchInterface
                 {
                     // And each of its shapes
                     foreach(Shape shape in pair.Value.shapes){
-                        if (shape == null) break;
+                        if (shape == null || pair.Key == query.name) break;
                         d += worker(shape.feature[i], avgVal);
                         total++;
                     }
@@ -140,24 +324,26 @@ namespace SearchInterface
                     // And each of its shapes
                     foreach (Shape shape in pair.Value.shapes)
                     {
-                        if(shape==null) break;
+                        if (shape == null || pair.Key == query.name) break;
                         d += worker(shape.feature[i], avgVal);
                         total++;
                     }
                 }
 
-                for (int j = 0; j < numFeatures; j++)
+                foreach (KeyValuePair<String, ImageObj> pair in untouchedImages)
                 {
-                    // Still not sure about including the shape
-                    // in the avg but it's here for now
-                    if(query.shapes[j]==null) break;
-                    d += worker(query.shapes[j].feature[i], avgVal);
-                    total++;
+                    // And each of its shapes
+                    foreach (Shape shape in pair.Value.shapes)
+                    {
+                        if (shape == null || pair.Key == query.name) break;
+                        d += worker(shape.feature[i], avgVal);
+                        total++;
+                    }
                 }
 
                 if (thres)
                 {
-                    threshold[i] = (double)Math.Sqrt(d / total);
+                    featureThreshold[i] = (double)Math.Sqrt(d / total);
                 }
                 else
                 {
@@ -176,7 +362,7 @@ namespace SearchInterface
             return f + s;
         }
 
-        public void computeFeatureRelevance()
+        private void computeFeatureRelevance()
         {
             // Compute for both rel and not rel
             featureRel(true);
@@ -189,6 +375,7 @@ namespace SearchInterface
             // of the query, add one.  The argument says whether to use rel or not rel.
             var index = rel ? featureRelIndex : featureNotRelIndex;
             var images = rel ? relImages : notRelImages;
+            if (rel) { relShapeCount = 0; } else { notRelShapeCount = 0; }
 
             for (int i=0; i<numShapes; i++)
             {
@@ -210,7 +397,7 @@ namespace SearchInterface
                             // one to the index score
                             if (shape == null) break; // No more shapes
                             double distance = Math.Abs(shape.feature[j] - query.shapes[i].feature[j]);
-                            index[j] += distance < threshold[j] ? 1 : 0;
+                            index[j] += distance < featureThreshold[j] ? 1 : 0;
                             if(j==0){
                                 // These are added to for each shape in the query being matched
                                 // because technically that is the full relevance set
