@@ -189,9 +189,11 @@ namespace SearchInterface
 
             merge.doCleanup();
 
-
+            
             // For now this will always show the shape results
-            //string[] filenames = File.ReadAllLines(resultsFile);
+
+            mymarshal.resetResultSet(images.ToArray());
+
             StreamWriter wr = new StreamWriter(htmlFile);
 
             if (Directory.Exists(textBox3.Text))
