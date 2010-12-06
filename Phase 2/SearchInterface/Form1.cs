@@ -116,23 +116,25 @@ namespace SearchInterface
             queryImageName = textBox2.Text;
             string indexFolderShape = Path.GetDirectoryName(textBox1.Text);
             string[] meta = File.ReadAllLines(Path.Combine(indexFolderShape, "meta.txt"));
-
+            int ShapePageSize = int.Parse(meta[3]);
             shapeQuery(meta);
-            //runQuery(indexFolder, int.Parse(meta[3]));
 
             string indexFolderSift = Path.GetDirectoryName(textBox4.Text);
             meta = File.ReadAllLines(Path.Combine(indexFolderSift, "meta.txt"));
-            
+            int SiftPageSize = int.Parse(meta[3]);
+
             siftQuery(meta);
             //runQuery(indexFolder, int.Parse(meta[3]));
 
             var nnShape = new NearestNeighborNRA.NearestNeighbor();
             nnShape.setFolderDir(indexFolderShape);
             nnShape.setQueryFile("query.txt");
+            nnShape.setPageSize(ShapePageSize);
 
             var nnSift = new NearestNeighborNRA.NearestNeighbor();
             nnSift.setFolderDir(indexFolderSift);
             nnSift.setQueryFile("sift-query.txt");
+            nnSift.setPageSize(SiftPageSize);
 
             var merge = new NearestNeighborNRA.NRA(nnShape, nnSift);
             List<string> images = merge.mergeAndReturn(2);
