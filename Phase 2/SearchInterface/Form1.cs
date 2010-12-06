@@ -17,7 +17,7 @@ namespace SearchInterface
         private int siftShapes;
         private int shapeFeatures;
         private int shapeShapes;
-        private string queryImageName;
+        private string queryImagePath;
 
         public Form1()
         {
@@ -74,7 +74,7 @@ namespace SearchInterface
             Process querymaker = new Process();
             querymaker.StartInfo.WorkingDirectory = Path.Combine(Application.StartupPath, "sift");
             querymaker.StartInfo.FileName = "SiftExtractor.exe";
-            querymaker.StartInfo.Arguments = string.Format("{1} {2} -F {0}", queryImageName, siftShapes, siftFeatures);
+            querymaker.StartInfo.Arguments = string.Format("{1} {2} -F {0}", queryImagePath, siftShapes, siftFeatures);
             querymaker.StartInfo.CreateNoWindow = true;
             querymaker.Start();
             querymaker.WaitForExit();
@@ -95,7 +95,7 @@ namespace SearchInterface
 
             Process querymaker = new Process();
             querymaker.StartInfo.FileName = "ShapeIndexer.exe";
-            querymaker.StartInfo.Arguments = string.Format("-o query.txt -l {1} -k {2} -F \"{0}\"", queryImageName, shapeFeatures, shapeShapes);
+            querymaker.StartInfo.Arguments = string.Format("-o query.txt -l {1} -k {2} -F \"{0}\"", queryImagePath, shapeFeatures, shapeShapes);
             querymaker.StartInfo.CreateNoWindow = true;
             querymaker.Start();
             querymaker.WaitForExit();
@@ -113,7 +113,7 @@ namespace SearchInterface
 
         private void button3_Click(object sender, EventArgs e)
         {
-            queryImageName = textBox2.Text;
+            queryImagePath = textBox2.Text;
             string indexFolderShape = Path.GetDirectoryName(textBox1.Text);
             string[] meta = File.ReadAllLines(Path.Combine(indexFolderShape, "meta.txt"));
             int ShapePageSize = int.Parse(meta[3]);
@@ -230,7 +230,7 @@ body{font-family: sans-serif; font-size: 14px; }
         private void button5_Click(object sender, EventArgs e)
         {
             string shapeOutput = Path.Combine(Path.GetDirectoryName(textBox1.Text), "output.txt");
-            FeedbackProcessor shapeFeedback = new FeedbackProcessor(queryImageName, mymarshal.getFeedback(), shapeOutput, shapeFeatures, shapeShapes);
+            FeedbackProcessor shapeFeedback = new FeedbackProcessor(Path.GetFileName(queryImagePath), mymarshal.getFeedback(), shapeOutput, shapeFeatures, shapeShapes);
             
             /* Commented because for now only Shape results are used
              
@@ -238,7 +238,7 @@ body{font-family: sans-serif; font-size: 14px; }
             FeedbackProcessor siftFeedback = new FeedbackProcessor(mymarshal.getFeedback(), siftOutput, siftFeatures, siftShapes);
             */
 
-            shapeFeedback.computeFeatureThresholds();
+            double[] newWeights = shapeFeedback.getFeatureAdjustedValues();
             string test = "test";
         }
 
